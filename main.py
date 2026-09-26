@@ -1,7 +1,11 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from database import get_db
+from database import get_db, engine
+import models
+
+# สั่งสร้างตารางทั้งหมดใน Database หากยังไม่มี
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="QueueCare API")
 
