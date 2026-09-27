@@ -97,7 +97,7 @@ def call_next_queue(service_id: int, db: Session = Depends(get_db)):
                    .first()
     
     if not next_queue:
-        raise HTTPException(status_code=404, detail="There are no waiting queues for this service")
+        raise HTTPException(status_code=404, detail="There are no waiting queues for this servicecd")
     
     next_queue.status = "serving"
     db.commit()
