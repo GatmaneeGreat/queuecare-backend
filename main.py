@@ -60,3 +60,49 @@ def create_queue(queue: schemas.QueueCreate, db: Session = Depends(get_db)):
 @app.get("/queues", response_model=List[schemas.QueueResponse], tags=["Queues"])
 def get_queues(db: Session = Depends(get_db)):
     return db.query(models.Queue).all()
+
+# --- SERVICE ENDPOINTS ---
+
+@app.post("/services", response_model=schemas.ServiceResponse, status_code=status.HTTP_201_CREATED)
+def create_service(service: schemas.ServiceCreate, db: Session = Depends(get_db)):
+    new_service = models.Service(
+        name=service.name,
+        description=service.description
+    )
+    db.add(new_service)
+    db.commit()
+    db.refresh(new_service)
+    return new_service
+
+@app.get("/services", response_model=List[schemas.ServiceResponse])
+def get_services(db: Session = Depends(get_db)):
+    return db.query(models.Service).all()
+
+
+# --- QUEUE MANAGEMENT ENDPOINTS ---
+
+@app.patch("/queues/{queue_id}/status", response_model=schemas.QueueResponse)
+def update_queue_status(queue_id: int, status_data: schemas.QueueStatusUpdate, db: Session = Depends(get_db)):
+    queue = db.query(models.Queue).filter(models.Queue.id == queue_id).first()
+    if not queue:
+        raise HTTPException(status_code=404, detail="ไม่พบคิวนี้ในระบบ")
+    
+    queue.status = status_data.status
+    db.commit()
+    db.refresh(queue)
+    return queue
+
+@app.post("/queues/next", response_model=schemas.QueueResponse)
+def call_next_queue(service_id: int, db: Session = Depends(get_db)):
+    next_queue = db.query(models.Queue)\
+                   .filter(models.Queue.service_id == service_id, models.Queue.status == "waiting")\
+                   .order_by(models.Queue.id.asc())\
+                   .first()
+    
+    if not next_queue:
+        raise HTTPException(status_code=404, detail="There are no waiting queues for this service")
+    
+    next_queue.status = "serving"
+    db.commit()
+    db.refresh(next_queue)
+    return next_queue
