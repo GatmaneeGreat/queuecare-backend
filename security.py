@@ -6,14 +6,17 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import database, models
 
-SECRET_KEY = "YOUR_SUPER_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION" # คีย์สำหรับถอดรหัส Token
+# คีย์ลับสำหรับสร้างและถอดรหัส JWT
+SECRET_KEY = "YOUR_SUPER_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION" 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # กำหนดหมดอายุ 1 วัน
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # อายุ Token 1 วัน
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-# 1. Password Hashing
+# ตั้งค่า tokenUrl ให้ชี้มาที่ /auth/login เพื่อให้ Swagger UI รู้ว่าต้องยิงไปยืนยันตัวตนที่ไหน
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+# 1. Password Hashing & Verification
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -27,7 +30,7 @@ def create_access_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# 3. Get Current User from Token
+# 3. Dependency สำหรับดึงข้อมูลผู้ใช้ปัจจุบันจาก JWT Token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -47,7 +50,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-# 4. Role-Based Access Control (RBAC Check)
+# 4. Role-Based Access Control (RBAC Check) สำหรับเช็กสิทธิ์ Customer, Staff, Admin
 def require_roles(allowed_roles: list[str]):
     def role_checker(current_user: models.User = Depends(get_current_user)):
         if current_user.role not in allowed_roles:
