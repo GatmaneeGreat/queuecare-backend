@@ -32,3 +32,21 @@ class QueueResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        
+# --- SERVICE SCHEMAS ---
+class ServiceBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class ServiceCreate(ServiceBase):
+    pass
+
+class ServiceResponse(ServiceBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# --- QUEUE STATUS UPDATE SCHEMA ---
+class QueueStatusUpdate(BaseModel):
+    status: str  # waiting, serving, completed, cancelled
