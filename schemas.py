@@ -38,6 +38,11 @@ class ServiceCreate(BaseModel):
     description: Optional[str] = None
 
 
+class ServiceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
 class ServiceResponse(BaseModel):
     id: int
     name: str
@@ -58,6 +63,10 @@ class QueueUpdate(BaseModel):
     status: str  # สำหรับอัปเดตเป็น: waiting, serving, completed, cancelled
 
 
+class QueueStatusUpdate(BaseModel):
+    status: str  # waiting, serving, completed, cancelled
+
+
 class QueueResponse(BaseModel):
     id: int
     number: str
@@ -72,21 +81,3 @@ class QueueResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        
-# --- SERVICE SCHEMAS ---
-class ServiceBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class ServiceCreate(ServiceBase):
-    pass
-
-class ServiceResponse(ServiceBase):
-    id: int
-
-    class Config:
-        from_attributes = True
-
-# --- QUEUE STATUS UPDATE SCHEMA ---
-class QueueStatusUpdate(BaseModel):
-    status: str  # waiting, serving, completed, cancelled
