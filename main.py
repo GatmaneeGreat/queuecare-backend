@@ -6,17 +6,29 @@ from typing import List
 from database import get_db, engine
 import models
 import schemas
+from routers import auth
 
-# สั่งสร้างตาราง
+# 1. สั่งสร้างตารางใน Database อัตโนมัติ (หากยังไม่มี)
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="QueueCare API")
+# 2. ประกาศตัวแปร app ก่อนใช้งาน
+app = FastAPI(
+    title="QueueCare API",
+    description="Backend API for QueueCare system",
+    version="1.0.0"
+)
 
-@app.get("/")
+# 3. นำ Router (ระบบ Auth/Login) เข้ามารวมกับ app หลัก
+app.include_router(auth.router)
+
+
+# --- HEALTH CHECK & TEST ENDPOINTS ---
+@app.get("/", tags=["Root"])
 def read_root():
     return {"message": "Welcome to QueueCare API"}
 
-@app.get("/test-db")
+
+@app.get("/test-db", tags=["Health Check"])
 def test_db(db: Session = Depends(get_db)):
     try:
         result = db.execute(text("SELECT NOW()")).fetchone()
@@ -24,25 +36,15 @@ def test_db(db: Session = Depends(get_db)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# --- USER ENDPOINTS ---
-@app.post("/users", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    new_user = models.User(name=user.name, email=user.email, role=user.role)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
 
-@app.get("/users", response_model=List[schemas.UserResponse])
+# --- USER ENDPOINTS ---
+@app.get("/users", response_model=List[schemas.UserResponse], tags=["Users"])
 def get_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
 
+
 # --- QUEUE ENDPOINTS ---
-@app.post("/queues", response_model=schemas.QueueResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/queues", response_model=schemas.QueueResponse, status_code=status.HTTP_201_CREATED, tags=["Queues"])
 def create_queue(queue: schemas.QueueCreate, db: Session = Depends(get_db)):
     new_queue = models.Queue(
         number=queue.number,
@@ -54,7 +56,8 @@ def create_queue(queue: schemas.QueueCreate, db: Session = Depends(get_db)):
     db.refresh(new_queue)
     return new_queue
 
-@app.get("/queues", response_model=List[schemas.QueueResponse])
+
+@app.get("/queues", response_model=List[schemas.QueueResponse], tags=["Queues"])
 def get_queues(db: Session = Depends(get_db)):
     return db.query(models.Queue).all()
 
