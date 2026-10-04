@@ -46,3 +46,12 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.get("/users", response_model=List[schemas.UserResponse])
 def get_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
+
+
+# ========================================================
+# โค้ดส่วนใหม่ที่เพิ่มต่อท้าย
+# ========================================================
+from routers import transactions, reviews
+
+app.include_router(transactions.router)
+app.include_router(reviews.router)

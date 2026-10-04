@@ -81,3 +81,42 @@ class QueueResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ========================================================
+# โค้ดส่วนใหม่ที่เพิ่มต่อท้าย
+# ========================================================
+from pydantic import Field
+
+
+# --- TRANSACTION SCHEMAS ---
+class TransactionCreate(BaseModel):
+    queue_id: int
+    amount: int
+    status: Optional[str] = "pending"
+
+
+class TransactionResponse(BaseModel):
+    id: int
+    queue_id: int
+    amount: int
+    status: str
+
+    class Config:
+        from_attributes = True
+
+
+# --- REVIEW SCHEMAS ---
+class ReviewCreate(BaseModel):
+    rating: int = Field(..., ge=1, le=5, description="คะแนน 1 ถึง 5 ดาว")
+    comment: Optional[str] = None
+
+
+class ReviewResponse(BaseModel):
+    id: int
+    user_id: int
+    rating: int
+    comment: Optional[str] = None
+
+    class Config:
+        from_attributes = True
