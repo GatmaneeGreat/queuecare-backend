@@ -83,20 +83,6 @@
       </div>
     </div>
 
-    <!-- Quick Demo Links -->
-    <div class="pt-2 border-t border-stone-100 text-center space-y-1">
-      <p class="text-[10px] text-stone-400 font-medium">ทดลองดูหน้าติดตามคิวตัวอย่าง / Try Demo Views:</p>
-      <div class="flex justify-center gap-3">
-        <button onclick="goToDemo('standard')" class="text-xs text-[#2D6A4F] hover:underline font-semibold">
-          🍃 Demo แบบธรรมดา
-        </button>
-        <span class="text-stone-300">|</span>
-        <button onclick="goToDemo('pro')" class="text-xs text-amber-700 hover:underline font-semibold">
-          ⚡ Demo แบบโปร (Pro)
-        </button>
-      </div>
-    </div>
-
   </div>
 
   <script>
@@ -123,10 +109,6 @@
       } else {
         alert('กรุณากรอกชื่อ-นามสกุลของผู้ป่วย / Please enter patient name');
       }
-    }
-
-    function goToDemo(pkg) {
-      window.location.href = `/track/29eb88ef-d0ee-4d69-b25f-5b4a87682782?pkg=${pkg}`;
     }
   </script>
 </body>

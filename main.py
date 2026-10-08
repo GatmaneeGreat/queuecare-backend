@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Optional
 
 from database import get_db, engine
 import models
@@ -28,7 +28,7 @@ app.include_router(reviews.router)
 
 
 # ========================================================
-# FRONTEND PAGES (แก้ไขรูปแบบ TemplateResponse)
+# FRONTEND PAGES
 # ========================================================
 
 @app.get("/")
@@ -39,9 +39,18 @@ def home_page(request: Request):
         name="index.html"
     )
 
+@app.get("/nurse")
+def nurse_page(request: Request):
+    """หน้าพยาบาล: ออกบัตรคิวผู้ป่วยใหม่และพิมพ์ QR Code"""
+    return templates.TemplateResponse(
+        request=request, 
+        name="nurse.html"
+    )
+
+@app.get("/track")
 @app.get("/track/{token}")
-def track_page(request: Request, token: str):
-    """หน้าติดตามคิวสาธารณะ: สำหรับผู้ป่วยและญาติสแกน/กดดูผ่านลิงก์"""
+def track_page(request: Request, token: Optional[str] = ""):
+    """หน้าติดตามคิวสาธารณะ: รองรับทั้ง Query String (?q=A-001) และ Path Parameter (/track/token)"""
     return templates.TemplateResponse(
         request=request, 
         name="track.html", 

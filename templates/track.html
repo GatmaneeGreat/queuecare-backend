@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สถานะคิวของคุณ - QueueCare</title>
+  <title>สถานะคิวบริการ - QueueCare</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -16,13 +16,16 @@
     
     <!-- Top Bar Navigation -->
     <div class="flex items-center justify-between px-1">
-      <a href="/" class="text-xs text-stone-500 hover:text-[#2D6A4F] flex items-center gap-1 font-medium">
+      <!-- Back Button for Main Patient -->
+      <a id="backBtn" href="/" class="text-xs text-stone-500 hover:text-[#2D6A4F] flex items-center gap-1 font-medium transition">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
         กลับหน้าหลัก / Back
       </a>
-      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-[#1B4332] text-[11px] font-semibold">
+
+      <!-- Live Status Badge -->
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-[#1B4332] text-[11px] font-semibold ml-auto">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         อัปเดตสดแบบเรียลไทม์ / Live
       </span>
@@ -74,13 +77,13 @@
           <span class="text-base">🔔</span>
           <div>
             <p class="font-semibold text-emerald-200 text-[11px]">การแจ้งเตือนจากแอป/เว็บ (In-App Notification)</p>
-            <p class="text-[10px] text-emerald-300/80">ระบบจะแจ้งเตือนเมื่อใกล้ถึงคิวของคุณ</p>
+            <p class="text-[10px] text-emerald-300/80">ระบบจะแจ้งเตือนเมื่อใกล้ถึงคิว</p>
           </div>
         </div>
         <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-medium">เปิดใช้งานแล้ว</span>
       </div>
 
-      <!-- Pro Feature: Privacy-Friendly Share Link for Relatives -->
+      <!-- Pro Feature: Share Link for Relatives (Hidden in Relative View) -->
       <div id="proFamilySection" class="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl space-y-2">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-1.5 text-xs text-amber-200 font-semibold">
@@ -91,12 +94,11 @@
         </div>
         <p class="text-[11px] text-emerald-100/90 leading-snug">
           ส่งลิงก์นี้ให้ญาติเปิดดูคิวสดๆ พร้อมรับการแจ้งเตือนผ่านหน้าเว็บทันที โดยไม่ต้องกรอกข้อมูลส่วนตัวหรือเบอร์โทรศัพท์
-          <br><span class="text-[10px] text-amber-200/70">Share this link with relatives for live queue updates & instant in-app alerts without providing phone numbers.</span>
         </p>
 
         <button onclick="copyShareLink()" class="w-full mt-1 bg-amber-400 hover:bg-amber-300 text-stone-900 text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
           <span id="copyBtnText">คัดลอกลิงก์แชร์ให้ญาติ / Copy Family Link</span>
         </button>
@@ -116,7 +118,7 @@
 
     </div>
 
-    <!-- Action / Help Notice (Bilingual) -->
+    <!-- Action / Notification Notice (Bilingual) -->
     <div class="bg-white p-3.5 rounded-2xl border border-stone-200/60 text-center space-y-0.5 shadow-sm">
       <p class="text-xs font-semibold text-stone-700">🔔 แอปจะแจ้งเตือนเมื่อเหลืออีก 1 คิว</p>
       <p class="text-[10px] text-stone-500">You will receive an in-app alert when 1 queue remains. Please be ready at Room 3.</p>
@@ -127,17 +129,34 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const pkg = urlParams.get('pkg');
+    const role = urlParams.get('role');
 
+    // 1. Handle Package View
     if (pkg === 'standard') {
       document.getElementById('pkgBadge').className = 'bg-emerald-700 text-emerald-100 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-500/30';
       document.getElementById('pkgBadge').innerText = '🍃 ธรรมดา (Standard)';
       document.getElementById('proFamilySection').style.display = 'none';
     }
 
+    // 2. Handle Relative View Mode (Clean & Read-Only)
+    if (role === 'relative') {
+      // Hide Back Button
+      document.getElementById('backBtn').style.display = 'none';
+      // Hide Share Link Box in Relative View
+      if (document.getElementById('proFamilySection')) {
+        document.getElementById('proFamilySection').style.display = 'none';
+      }
+    }
+
+    // 3. Copy Share Link for Pro Package (Appends &role=relative)
     function copyShareLink() {
-      navigator.clipboard.writeText(window.location.href);
+      const shareUrl = new URL(window.location.href);
+      shareUrl.searchParams.set('role', 'relative');
+      
+      navigator.clipboard.writeText(shareUrl.toString());
+      
       const btnText = document.getElementById('copyBtnText');
-      btnText.innerText = 'คัดลอกลิงก์เรียบร้อย! ✨ / Copied!';
+      btnText.innerText = 'คัดลอกลิงก์สำหรับญาติเรียบร้อย! ✨ / Copied!';
       setTimeout(() => {
         btnText.innerText = 'คัดลอกลิงก์แชร์ให้ญาติ / Copy Family Link';
       }, 2000);
