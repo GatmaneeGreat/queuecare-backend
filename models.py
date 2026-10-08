@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -31,6 +32,9 @@ class Queue(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     service_id = Column(Integer, ForeignKey("services.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # ➕ เพิ่มบรรทัดนี้ลงใน class Queue หลักครับ
+    share_token = Column(String(36), default=lambda: str(uuid.uuid4()), unique=True, index=True)
 
 
 class Transaction(Base):
@@ -49,3 +53,4 @@ class Review(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
+

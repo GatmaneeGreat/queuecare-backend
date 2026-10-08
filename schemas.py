@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
 
@@ -74,6 +74,9 @@ class QueueResponse(BaseModel):
     user_id: int
     service_id: Optional[int] = None
     created_at: datetime
+    
+    # ➕ เพิ่มบรรทัดนี้เข้ามาครับ
+    share_token: Optional[str] = None
 
     # ดึงข้อมูลผู้ใช้และบริการติดมาด้วยได้
     user: Optional[UserResponse] = None
@@ -81,12 +84,6 @@ class QueueResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-# ========================================================
-# โค้ดส่วนใหม่ที่เพิ่มต่อท้าย
-# ========================================================
-from pydantic import Field
 
 
 # --- TRANSACTION SCHEMAS ---

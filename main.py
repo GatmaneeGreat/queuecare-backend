@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from pathlib import Path
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
@@ -6,20 +8,53 @@ from typing import List
 from database import get_db, engine
 import models
 import schemas
-from routers import auth, services, queues  # นำเข้า routers ทั้งหมด
+from routers import auth, services, queues, transactions, reviews
 
-# สั่งสร้างตาราง
+# สั่งสร้างตาราง Database
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="QueueCare API")
 
-# ลงทะเบียน Routers เข้ากับ App หลัก
+# ตั้งค่าโฟลเดอร์ templates
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+# ลงทะเบียน Routers ทั้งหมด
 app.include_router(auth.router)
 app.include_router(services.router)
 app.include_router(queues.router)
+app.include_router(transactions.router)
+app.include_router(reviews.router)
+
+
+# ========================================================
+# FRONTEND PAGES (แก้ไขรูปแบบ TemplateResponse)
+# ========================================================
 
 @app.get("/")
-def read_root():
+def home_page(request: Request):
+    """หน้าแรก: เข้าสู่ระบบ / เลือกประเภทบริการ (ธรรมดา / โปร)"""
+    return templates.TemplateResponse(
+        request=request, 
+        name="index.html"
+    )
+
+@app.get("/track/{token}")
+def track_page(request: Request, token: str):
+    """หน้าติดตามคิวสาธารณะ: สำหรับผู้ป่วยและญาติสแกน/กดดูผ่านลิงก์"""
+    return templates.TemplateResponse(
+        request=request, 
+        name="track.html", 
+        context={"token": token}
+    )
+
+
+# ========================================================
+# BACKEND API ENDPOINTS
+# ========================================================
+
+@app.get("/api-status")
+def api_status():
     return {"message": "Welcome to QueueCare API"}
 
 @app.get("/test-db")
@@ -46,12 +81,3 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.get("/users", response_model=List[schemas.UserResponse])
 def get_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
-
-
-# ========================================================
-# โค้ดส่วนใหม่ที่เพิ่มต่อท้าย
-# ========================================================
-from routers import transactions, reviews
-
-app.include_router(transactions.router)
-app.include_router(reviews.router)

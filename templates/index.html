@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ติดตามคิวบริการ - QueueCare</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #F9F9F6; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md bg-white p-7 rounded-3xl shadow-sm border border-stone-200/60 space-y-5">
+    
+    <!-- Header Logo -->
+    <div class="flex items-center gap-2.5 border-b border-stone-100 pb-3">
+      <div class="w-10 h-10 bg-[#2D6A4F] text-white rounded-xl flex items-center justify-center shadow-md shadow-[#2D6A4F]/20">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" stroke-width="2"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-[#1B4332] leading-none">QueueCare</h1>
+        <p class="text-[11px] text-stone-500 mt-0.5">ระบบติดตามคิวบริการ / Live Queue Tracking</p>
+      </div>
+    </div>
+
+    <!-- Package Selection (Clean Design) -->
+    <div class="space-y-2">
+      <label class="block text-xs font-semibold text-stone-700">
+        เลือกแพ็กเกจบริการ / Select Package
+      </label>
+      <div class="grid grid-cols-2 gap-2.5">
+        <!-- Standard Package -->
+        <label id="pkgStandardCard" class="cursor-pointer border-2 border-[#2D6A4F] bg-[#2D6A4F]/5 p-3.5 rounded-2xl flex justify-between items-center transition">
+          <div>
+            <span class="text-xs font-bold text-[#1B4332] block">ธรรมดา</span>
+            <span class="text-[10px] text-stone-500 font-medium">Standard</span>
+          </div>
+          <input type="radio" name="pkgOption" value="standard" checked onclick="selectPackage('standard')" class="accent-[#2D6A4F] w-4 h-4">
+        </label>
+
+        <!-- Pro Package -->
+        <label id="pkgProCard" class="cursor-pointer border-2 border-stone-200 p-3.5 rounded-2xl flex justify-between items-center transition hover:border-amber-400">
+          <div>
+            <span class="text-xs font-bold text-amber-700 flex items-center gap-1">⚡ โปร</span>
+            <span class="text-[10px] text-stone-500 font-medium">Pro</span>
+          </div>
+          <input type="radio" name="pkgOption" value="pro" onclick="selectPackage('pro')" class="accent-amber-500 w-4 h-4">
+        </label>
+      </div>
+    </div>
+
+    <!-- Camera / QR Scan Action Box -->
+    <div class="bg-[#2D6A4F]/5 border-2 border-dashed border-[#2D6A4F]/30 p-5 rounded-2xl text-center space-y-2.5">
+      <div class="w-14 h-14 bg-[#2D6A4F] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md shadow-[#2D6A4F]/20">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <div>
+        <h2 class="font-bold text-[#1B4332] text-sm">ใช้กล้องสแกน QR Code บนใบคิว</h2>
+        <p class="text-[11px] text-stone-500 leading-snug mt-0.5">
+          Scan QR Code on ticket with your smartphone camera to view live queue status
+        </p>
+      </div>
+    </div>
+
+    <!-- Manual Patient Name Search (Fallback) -->
+    <div class="space-y-1.5">
+      <label class="block text-xs font-semibold text-stone-700">
+        กรณีไม่มี QR Code ค้นหาด้วยชื่อ-นามสกุล / Search by Name
+      </label>
+      <div class="flex gap-2">
+        <input id="patientNameInput" type="text" placeholder="กรอกชื่อ - นามสกุล ผู้ป่วย / Full Name" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 text-xs focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:bg-white transition">
+        <button onclick="trackByName()" class="bg-[#2D6A4F] hover:bg-[#1B4332] text-white px-4 rounded-xl font-medium text-xs transition shrink-0 shadow-sm">
+          ค้นหา / Search
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Demo Links -->
+    <div class="pt-2 border-t border-stone-100 text-center space-y-1">
+      <p class="text-[10px] text-stone-400 font-medium">ทดลองดูหน้าติดตามคิวตัวอย่าง / Try Demo Views:</p>
+      <div class="flex justify-center gap-3">
+        <button onclick="goToDemo('standard')" class="text-xs text-[#2D6A4F] hover:underline font-semibold">
+          🍃 Demo แบบธรรมดา
+        </button>
+        <span class="text-stone-300">|</span>
+        <button onclick="goToDemo('pro')" class="text-xs text-amber-700 hover:underline font-semibold">
+          ⚡ Demo แบบโปร (Pro)
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let selectedPkg = 'standard';
+
+    function selectPackage(pkg) {
+      selectedPkg = pkg;
+      const stdCard = document.getElementById('pkgStandardCard');
+      const proCard = document.getElementById('pkgProCard');
+
+      if (pkg === 'standard') {
+        stdCard.className = 'cursor-pointer border-2 border-[#2D6A4F] bg-[#2D6A4F]/5 p-3.5 rounded-2xl flex justify-between items-center transition';
+        proCard.className = 'cursor-pointer border-2 border-stone-200 p-3.5 rounded-2xl flex justify-between items-center transition hover:border-amber-400';
+      } else {
+        stdCard.className = 'cursor-pointer border-2 border-stone-200 p-3.5 rounded-2xl flex justify-between items-center transition hover:border-[#2D6A4F]';
+        proCard.className = 'cursor-pointer border-2 border-amber-500 bg-amber-500/5 p-3.5 rounded-2xl flex justify-between items-center transition';
+      }
+    }
+
+    function trackByName() {
+      const name = document.getElementById('patientNameInput').value.trim();
+      if (name) {
+        window.location.href = `/track/29eb88ef-d0ee-4d69-b25f-5b4a87682782?pkg=${selectedPkg}`;
+      } else {
+        alert('กรุณากรอกชื่อ-นามสกุลของผู้ป่วย / Please enter patient name');
+      }
+    }
+
+    function goToDemo(pkg) {
+      window.location.href = `/track/29eb88ef-d0ee-4d69-b25f-5b4a87682782?pkg=${pkg}`;
+    }
+  </script>
+</body>
+</html>
