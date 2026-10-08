@@ -3,7 +3,10 @@ from typing import Optional
 from datetime import datetime
 
 
-# --- AUTH & USER SCHEMAS ---
+# =========================================================
+# AUTH & USER
+# =========================================================
+
 class UserRegister(BaseModel):
     name: str
     email: EmailStr
@@ -32,7 +35,10 @@ class Token(BaseModel):
     token_type: str
 
 
-# --- SERVICE SCHEMAS ---
+# =========================================================
+# SERVICE
+# =========================================================
+
 class ServiceCreate(BaseModel):
     name: str
     description: Optional[str] = None
@@ -52,7 +58,10 @@ class ServiceResponse(BaseModel):
         from_attributes = True
 
 
-# --- QUEUE SCHEMAS ---
+# =========================================================
+# QUEUE
+# =========================================================
+
 class QueueCreate(BaseModel):
     number: str
     user_id: int
@@ -60,11 +69,11 @@ class QueueCreate(BaseModel):
 
 
 class QueueUpdate(BaseModel):
-    status: str  # สำหรับอัปเดตเป็น: waiting, serving, completed, cancelled
+    status: str
 
 
 class QueueStatusUpdate(BaseModel):
-    status: str  # waiting, serving, completed, cancelled
+    status: str
 
 
 class QueueResponse(BaseModel):
@@ -74,11 +83,8 @@ class QueueResponse(BaseModel):
     user_id: int
     service_id: Optional[int] = None
     created_at: datetime
-    
-    # ➕ เพิ่มบรรทัดนี้เข้ามาครับ
     share_token: Optional[str] = None
 
-    # ดึงข้อมูลผู้ใช้และบริการติดมาด้วยได้
     user: Optional[UserResponse] = None
     service: Optional[ServiceResponse] = None
 
@@ -86,7 +92,37 @@ class QueueResponse(BaseModel):
         from_attributes = True
 
 
-# --- TRANSACTION SCHEMAS ---
+# =========================================================
+# PUBLIC QUEUE RESPONSE
+# ใช้สำหรับหน้า /track
+# =========================================================
+
+class PublicQueueResponse(BaseModel):
+    id: int
+    number: str
+    status: str
+    user_id: int
+    service_id: Optional[int] = None
+    created_at: datetime
+    share_token: Optional[str] = None
+
+    user: Optional[UserResponse] = None
+    service: Optional[ServiceResponse] = None
+
+    # จำนวนคิวที่อยู่ก่อนหน้าคิวนี้
+    ahead_count: int = 0
+
+    # เลขคิวที่กำลังให้บริการ
+    current_serving_number: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# =========================================================
+# TRANSACTION
+# =========================================================
+
 class TransactionCreate(BaseModel):
     queue_id: int
     amount: int
@@ -103,9 +139,17 @@ class TransactionResponse(BaseModel):
         from_attributes = True
 
 
-# --- REVIEW SCHEMAS ---
+# =========================================================
+# REVIEW
+# =========================================================
+
 class ReviewCreate(BaseModel):
-    rating: int = Field(..., ge=1, le=5, description="คะแนน 1 ถึง 5 ดาว")
+    rating: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="คะแนน 1 ถึง 5 ดาว"
+    )
     comment: Optional[str] = None
 
 
