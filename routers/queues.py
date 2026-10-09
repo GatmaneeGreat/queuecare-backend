@@ -1,8 +1,8 @@
 import uuid
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
 from database import get_db
 import models
@@ -56,20 +56,12 @@ def get_queues(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    return (
-        db.query(models.Queue)
-        .all()
-    )
+    return db.query(models.Queue).all()
 
 
 # =========================================================
 # SEARCH QUEUE BY PATIENT NAME
-# =========================================================
-#
-# ตัวอย่าง:
-#
-# GET /queues/search?name=สมชาย%20ใจดี
-#
+# GET /queues/search?name=John%20Doe
 # =========================================================
 
 @router.get(
@@ -88,57 +80,40 @@ def search_queue_by_name(
             detail="กรุณาระบุชื่อผู้ป่วย"
         )
 
-    # ค้นหาผู้ป่วยจากชื่อ
-    user = (
+    # ค้นหาชื่อแบบบางส่วน
+    users = (
         db.query(models.User)
-        .filter(
-            models.User.name.ilike(search_name)
-        )
-        .first()
+        .filter(models.User.name.ilike(f"%{search_name}%"))
+        .order_by(models.User.id.asc())
+        .limit(10)
+        .all()
     )
 
-    if not user:
+    if not users:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"ไม่พบผู้ป่วยชื่อ '{search_name}'"
         )
 
-    # หา queue ล่าสุดของผู้ป่วย
-    queue = (
-        db.query(models.Queue)
-        .filter(
-            models.Queue.user_id == user.id,
-            models.Queue.status.in_(
-                ["waiting", "serving"]
-            )
-        )
-        .order_by(
-            models.Queue.created_at.desc()
-        )
-        .first()
-    )
-
-    # ถ้าไม่มีคิว waiting/serving
-    # ให้ลองหา queue ล่าสุดทุกสถานะ
-    if not queue:
+    # ตรวจสอบคิวของผู้ใช้ที่พบทีละคน
+    for user in users:
         queue = (
             db.query(models.Queue)
             .filter(
-                models.Queue.user_id == user.id
+                models.Queue.user_id == user.id,
+                models.Queue.status.in_(["waiting", "serving"])
             )
-            .order_by(
-                models.Queue.created_at.desc()
-            )
+            .order_by(models.Queue.created_at.desc())
             .first()
         )
 
-    if not queue:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"พบผู้ป่วย '{user.name}' แต่ยังไม่มีคิว"
-        )
+        if queue:
+            return queue
 
-    return queue
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"พบชื่อผู้ป่วยที่ตรงกับ '{search_name}' แต่ไม่พบคิวที่กำลังดำเนินการ"
+    )
 
 
 # =========================================================
@@ -155,16 +130,29 @@ def update_queue_status(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
+    allowed_statuses = [
+        "waiting",
+        "serving",
+        "completed",
+        "cancelled"
+    ]
+
+    if status_data.status not in allowed_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="สถานะคิวไม่ถูกต้อง"
+        )
+
     queue = (
         db.query(models.Queue)
         .filter(models.Queue.id == queue_id)
         .first()
     )
 
-    if not queue:
+    if queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Queue not found"
+            detail="ไม่พบคิวที่ต้องการ"
         )
 
     queue.status = status_data.status
@@ -194,16 +182,14 @@ def call_next_queue(
             models.Queue.service_id == service_id,
             models.Queue.status == "waiting"
         )
-        .order_by(
-            models.Queue.id.asc()
-        )
+        .order_by(models.Queue.id.asc())
         .first()
     )
 
-    if not next_queue:
+    if next_queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="There are no waiting queues for this service"
+            detail="ไม่มีคิวที่กำลังรอสำหรับบริการนี้"
         )
 
     next_queue.status = "serving"
@@ -216,12 +202,7 @@ def call_next_queue(
 
 # =========================================================
 # PUBLIC QUEUE
-# =========================================================
-#
-# ใช้สำหรับหน้า /track/{token}
-#
-# ไม่ต้อง Login
-#
+# GET /queues/public/{token}
 # =========================================================
 
 @router.get(
@@ -232,43 +213,30 @@ def get_public_queue(
     token: str,
     db: Session = Depends(get_db)
 ):
-    # หา queue จาก share token
     queue = (
         db.query(models.Queue)
-        .filter(
-            models.Queue.share_token == token
-        )
+        .filter(models.Queue.share_token == token)
         .first()
     )
 
-    if not queue:
+    if queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Queue not found"
+            detail="ไม่พบคิวจากลิงก์นี้"
         )
-
-    # -----------------------------------------
-    # นับจำนวนคิวก่อนหน้า
-    # -----------------------------------------
 
     ahead_count = 0
 
     if queue.service_id is not None:
-        waiting_queues = (
+        ahead_count = (
             db.query(models.Queue)
             .filter(
                 models.Queue.service_id == queue.service_id,
                 models.Queue.status == "waiting",
                 models.Queue.id < queue.id
             )
-            .all()
+            .count()
         )
-
-        ahead_count = len(waiting_queues)
-
-    # -----------------------------------------
-    # หา queue ที่กำลังให้บริการ
-    # -----------------------------------------
 
     current_serving = None
 
@@ -279,20 +247,9 @@ def get_public_queue(
                 models.Queue.service_id == queue.service_id,
                 models.Queue.status == "serving"
             )
-            .order_by(
-                models.Queue.id.desc()
-            )
+            .order_by(models.Queue.id.desc())
             .first()
         )
-
-    current_serving_number = None
-
-    if current_serving:
-        current_serving_number = current_serving.number
-
-    # -----------------------------------------
-    # ส่งข้อมูลกลับ
-    # -----------------------------------------
 
     return schemas.PublicQueueResponse(
         id=queue.id,
@@ -305,5 +262,7 @@ def get_public_queue(
         user=queue.user,
         service=queue.service,
         ahead_count=ahead_count,
-        current_serving_number=current_serving_number
+        current_serving_number=(
+            current_serving.number if current_serving else None
+        )
     )

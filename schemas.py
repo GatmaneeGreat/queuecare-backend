@@ -1,3 +1,4 @@
+
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
@@ -94,7 +95,6 @@ class QueueResponse(BaseModel):
 
 # =========================================================
 # PUBLIC QUEUE RESPONSE
-# ใช้สำหรับหน้า /track
 # =========================================================
 
 class PublicQueueResponse(BaseModel):
@@ -109,10 +109,7 @@ class PublicQueueResponse(BaseModel):
     user: Optional[UserResponse] = None
     service: Optional[ServiceResponse] = None
 
-    # จำนวนคิวที่อยู่ก่อนหน้าคิวนี้
     ahead_count: int = 0
-
-    # เลขคิวที่กำลังให้บริการ
     current_serving_number: Optional[str] = None
 
     class Config:
@@ -161,3 +158,4 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
