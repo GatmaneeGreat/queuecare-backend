@@ -1,3 +1,4 @@
+
 import uuid
 from typing import List
 
@@ -18,6 +19,7 @@ router = APIRouter(
 
 # =========================================================
 # CREATE QUEUE
+# POST /queues/
 # =========================================================
 
 @router.post(
@@ -46,6 +48,7 @@ def create_queue(
 
 # =========================================================
 # GET ALL QUEUES
+# GET /queues/
 # =========================================================
 
 @router.get(
@@ -72,7 +75,8 @@ def search_queue_by_name(
     name: str,
     db: Session = Depends(get_db)
 ):
-    search_name = name.strip()
+    # จัดการช่องว่างหัวท้ายและช่องว่างซ้ำ
+    search_name = " ".join(name.split())
 
     if not search_name:
         raise HTTPException(
@@ -80,44 +84,81 @@ def search_queue_by_name(
             detail="กรุณาระบุชื่อผู้ป่วย"
         )
 
-    # ค้นหาชื่อแบบบางส่วน
-    users = (
+    # 1. ค้นหาชื่อเต็มก่อน โดยไม่สนตัวพิมพ์เล็ก/ใหญ่
+    exact_users = (
         db.query(models.User)
-        .filter(models.User.name.ilike(f"%{search_name}%"))
-        .order_by(models.User.id.asc())
-        .limit(10)
+        .filter(models.User.name.ilike(search_name))
         .all()
     )
 
-    if not users:
+    if len(exact_users) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "พบผู้ป่วยชื่อเดียวกันหลายบัญชี "
+                "กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันตัวตน"
+            )
+        )
+
+    if len(exact_users) == 1:
+        user = exact_users[0]
+
+    else:
+        # 2. ถ้าไม่พบชื่อเต็ม ค้นหาชื่อบางส่วน
+        users = (
+            db.query(models.User)
+            .filter(
+                models.User.name.ilike(f"%{search_name}%")
+            )
+            .all()
+        )
+
+        if not users:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"ไม่พบผู้ป่วยชื่อ '{search_name}'"
+            )
+
+        # ห้ามเลือกคนแรกเอง หากมีหลายคนชื่อคล้ายกัน
+        if len(users) > 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "พบผู้ป่วยหลายคนที่ชื่อคล้ายกัน "
+                    "กรุณากรอกชื่อและนามสกุลให้ครบถ้วน"
+                )
+            )
+
+        user = users[0]
+
+    # 3. ค้นหาคิวที่ยังรอหรือกำลังให้บริการ
+    # โดยต้องเป็นคิวของผู้ป่วยที่ค้นพบเท่านั้น
+    queue = (
+        db.query(models.Queue)
+        .filter(
+            models.Queue.user_id == user.id,
+            models.Queue.status.in_(["waiting", "serving"])
+        )
+        .order_by(models.Queue.created_at.desc())
+        .first()
+    )
+
+    if queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ไม่พบผู้ป่วยชื่อ '{search_name}'"
-        )
-
-    # ตรวจสอบคิวของผู้ใช้ที่พบทีละคน
-    for user in users:
-        queue = (
-            db.query(models.Queue)
-            .filter(
-                models.Queue.user_id == user.id,
-                models.Queue.status.in_(["waiting", "serving"])
+            detail=(
+                f"พบผู้ป่วยชื่อ '{user.name}' "
+                "แต่ไม่พบคิวที่กำลังดำเนินการ"
             )
-            .order_by(models.Queue.created_at.desc())
-            .first()
         )
 
-        if queue:
-            return queue
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"พบชื่อผู้ป่วยที่ตรงกับ '{search_name}' แต่ไม่พบคิวที่กำลังดำเนินการ"
-    )
+    # 4. ส่งคิวที่ตรงกับผู้ป่วยกลับไป
+    return queue
 
 
 # =========================================================
 # UPDATE QUEUE STATUS
+# PATCH /queues/{queue_id}/status
 # =========================================================
 
 @router.patch(
@@ -165,6 +206,7 @@ def update_queue_status(
 
 # =========================================================
 # CALL NEXT QUEUE
+# POST /queues/next?service_id=1
 # =========================================================
 
 @router.post(
@@ -213,6 +255,7 @@ def get_public_queue(
     token: str,
     db: Session = Depends(get_db)
 ):
+    # ค้นหาคิวด้วย Token ที่ส่งมาจาก URL
     queue = (
         db.query(models.Queue)
         .filter(models.Queue.share_token == token)
@@ -225,6 +268,7 @@ def get_public_queue(
             detail="ไม่พบคิวจากลิงก์นี้"
         )
 
+    # นับจำนวนคิวที่รอก่อนหน้าในบริการเดียวกัน
     ahead_count = 0
 
     if queue.service_id is not None:
@@ -238,6 +282,7 @@ def get_public_queue(
             .count()
         )
 
+    # ค้นหาคิวที่กำลังให้บริการในบริการเดียวกัน
     current_serving = None
 
     if queue.service_id is not None:
@@ -251,6 +296,7 @@ def get_public_queue(
             .first()
         )
 
+    # ส่งข้อมูลคิวและข้อมูลที่หน้า Track ต้องใช้
     return schemas.PublicQueueResponse(
         id=queue.id,
         number=queue.number,
