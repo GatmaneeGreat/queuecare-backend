@@ -1,3 +1,6 @@
+import os
+os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"  # ป้องกัน C-Extension Error บน Windows
+
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.templating import Jinja2Templates
@@ -5,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional
 
-from database import get_db, engine
+from database import get_db, engine, SessionLocal
 import models
 import schemas
 from routers import auth, services, queues, transactions, reviews
@@ -14,6 +17,60 @@ from routers import auth, services, queues, transactions, reviews
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="QueueCare API")
+
+# ========================================================
+# AUTO-SETUP & AUTO-SEED ON STARTUP (ระบบสร้างข้อมูลอัตโนมัติ)
+# ========================================================
+@app.on_event("startup")
+def auto_setup_and_seed():
+    db = SessionLocal()
+    try:
+        # 1. Auto-Heal: ซ่อมตาราง queues เพิ่มคอลัมน์ share_token ถ้ายังไม่มี
+        db.execute(text("""
+            ALTER TABLE queues 
+            ADD COLUMN IF NOT EXISTS share_token VARCHAR(255);
+        """))
+        db.commit()
+
+        # 2. Auto-Seed: ยูสเซอร์พยาบาล (nurse@hospital.com)
+        nurse_user = db.query(models.User).filter(models.User.email == "nurse@hospital.com").first()
+        if not nurse_user:
+            try:
+                hashed_pw = auth.get_password_hash("password123")
+            except AttributeError:
+                from passlib.context import CryptContext
+                pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+                hashed_pw = pwd_context.hash("password123")
+
+            new_nurse = models.User(
+                name="Nurse Station",
+                email="nurse@hospital.com",
+                hashed_password=hashed_pw,
+                role="nurse"
+            )
+            db.add(new_nurse)
+            db.commit()
+
+        # 3. Auto-Seed: แผนกบริการ (Services)
+        default_services = [
+            {"id": 1, "name": "แผนกอายุรกรรม (General Medical)", "code": "A"},
+            {"id": 2, "name": "แผนกศัลยกรรม (Surgery)", "code": "B"},
+            {"id": 3, "name": "แผนกกุมารเวชกรรม (Pediatrics)", "code": "C"}
+        ]
+        for s in default_services:
+            existing = db.query(models.Service).filter(models.Service.id == s["id"]).first()
+            if not existing:
+                new_service = models.Service(**s)
+                db.add(new_service)
+        db.commit()
+
+        print("🟢 [System Ready] Database auto-healed & seeded successfully!")
+    except Exception as e:
+        db.rollback()
+        print(f"🔴 [Startup Error] Auto setup failed: {e}")
+    finally:
+        db.close()
+
 
 # ตั้งค่าโฟลเดอร์ templates
 BASE_DIR = Path(__file__).resolve().parent

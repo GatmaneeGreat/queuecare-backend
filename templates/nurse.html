@@ -119,6 +119,7 @@
         };
 
         let queueHistory = [];
+        let queueSeq = 1;
 
         // 1. ฟังก์ชันแอบ Login อัตโนมัติในเบื้องหลัง
         async function silentLogin() {
@@ -178,55 +179,65 @@
 
             let token = await getToken();
 
-            // ส่งข้อมูลบันทึกคิวไปยัง Backend
-            let response = await fetch('/queues/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    patient_name: patientName,
-                    service_id: serviceId
-                })
-            });
+            // รหัสคิวอัตโนมัติ เช่น A001, A002...
+            const generatedQueueNum = `A${String(queueSeq).padStart(3, '0')}`;
 
-            // ถ้าเจอ 401 (Token หมดอายุ) ให้แอบ Login ใหม่ แล้วลองยิงบันทึกอีกรอบทันที
-            if (response.status === 401) {
-                token = await silentLogin();
-                if (token) {
-                    response = await fetch('/queues/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            patient_name: patientName,
-                            service_id: serviceId
-                        })
-                    });
+            const payload = {
+                number: generatedQueueNum,
+                patient_name: patientName,
+                user_id: 2,
+                service_id: serviceId
+            };
+
+            async function sendQueueRequest(authToken) {
+                return await fetch('/queues/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            try {
+                let response = await sendQueueRequest(token);
+
+                // ถ้าเจอ 401 (Token หมดอายุ) ให้แอบ Login ใหม่ แล้วลองยิงบันทึกอีกรอบทันที
+                if (response.status === 401) {
+                    token = await silentLogin();
+                    if (token) {
+                        response = await sendQueueRequest(token);
+                    }
                 }
+
+                if (response.ok) {
+                    const newQueue = await response.json();
+                    queueSeq++;
+
+                    const selectedServiceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+
+                    // อัปเดตข้อมูลบนหน้าจอพยาบาลทันที
+                    updateNurseScreen(newQueue, patientName, selectedServiceName);
+                    
+                    // สั่งพิมพ์ใบคิว
+                    printSlip(newQueue, patientName, selectedServiceName);
+
+                    // ล้างช่องกรอกชื่อ และเอาเคอร์เซอร์ไปจ่อไว้ พร้อมพิมพ์ชื่อคนถัดไปทันที!
+                    nameInput.value = '';
+                    nameInput.focus();
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    console.error("Queue Error:", errData);
+                    alert("เกิดข้อผิดพลาดในการออกคิว กรุณาลองใหม่อีกครั้ง (" + response.status + ")");
+                }
+            } catch (err) {
+                console.error("Network Error:", err);
+                alert("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาเช็กการเชื่อมต่อ");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "🖨️ บันทึกข้อมูล & พิมพ์สลิปคิว";
             }
-
-            if (response.ok) {
-                const newQueue = await response.json();
-                
-                // อัปเดตข้อมูลบนหน้าจอพยาบาลทันที
-                updateNurseScreen(newQueue, patientName, serviceSelect.options[serviceSelect.selectedIndex].text);
-                
-                // สั่งพิมพ์ใบคิว
-                printSlip(newQueue, patientName, serviceSelect.options[serviceSelect.selectedIndex].text);
-
-                // ล้างช่องกรอกชื่อ และเอาเคอร์เซอร์ไปจ่อไว้ พร้อมพิมพ์ชื่อคนถัดไปทันที!
-                nameInput.value = '';
-                nameInput.focus();
-            } else {
-                alert("เกิดข้อผิดพลาดในการออกคิว กรุณาลองใหม่อีกครั้ง");
-            }
-
-            submitBtn.disabled = false;
-            submitBtn.innerText = "🖨️ บันทึกข้อมูล & พิมพ์สลิปคิว";
         }
 
         // 4. อัปเดตข้อมูลบนหน้าจอพยาบาล
