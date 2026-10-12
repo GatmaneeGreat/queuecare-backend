@@ -337,8 +337,8 @@
         }
 
 
-        // ต้องมี share_token
-        if (!data.share_token) {
+        // [แก้ 1] backend ส่งกลับมาในชื่อ token (เดิมเช็ค data.share_token)
+        if (!data.token) {
 
           throw new Error(
             'ผู้ป่วยรายนี้ยังไม่มี Token สำหรับติดตามคิว'
@@ -351,8 +351,9 @@
         // ไปหน้า Track ด้วย token ของ Queue ที่ค้นเจอ
         // ================================================
 
+        // [แก้ 2] เดิมใช้ data.share_token
         window.location.href =
-          `/track/${data.share_token}?pkg=${selectedPkg}`;
+          `/track/${data.token}?pkg=${selectedPkg}`;
 
       } catch (error) {
 

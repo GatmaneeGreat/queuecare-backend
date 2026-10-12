@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
@@ -24,7 +23,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     name: str
-    email: EmailStr
+    email: str
     role: str
 
     class Config:
@@ -67,6 +66,7 @@ class QueueCreate(BaseModel):
     number: str
     user_id: int
     service_id: Optional[int] = None
+    patient_name: Optional[str] = None  # <-- เพิ่มบรรทัดนี้เพื่อรับชื่อผู้ป่วย
 
 
 class QueueUpdate(BaseModel):
@@ -97,16 +97,23 @@ class QueueResponse(BaseModel):
 # PUBLIC QUEUE RESPONSE
 # =========================================================
 
+# [แก้ข้อ 3] schema ผู้ใช้สำหรับลิงก์สาธารณะ ส่งแค่ชื่อ ไม่ส่ง email/id/role
+class PublicUserResponse(BaseModel):
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
 class PublicQueueResponse(BaseModel):
     id: int
     number: str
     status: str
-    user_id: int
+    # [แก้ข้อ 3] ตัด user_id และ share_token ออก
     service_id: Optional[int] = None
     created_at: datetime
-    share_token: Optional[str] = None
 
-    user: Optional[UserResponse] = None
+    user: Optional[PublicUserResponse] = None   # [แก้ข้อ 3] เดิม UserResponse
     service: Optional[ServiceResponse] = None
 
     ahead_count: int = 0
@@ -158,4 +165,3 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
