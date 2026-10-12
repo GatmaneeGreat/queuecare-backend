@@ -51,16 +51,21 @@ def auto_setup_and_seed():
             db.add(new_nurse)
             db.commit()
 
-        # 3. Auto-Seed: แผนกบริการ (Services)
+        # 3. Auto-Seed: แผนกบริการ (Services) รวม 8 แผนก
         default_services = [
-            {"id": 1, "name": "แผนกอายุรกรรม (General Medical)", "code": "A"},
-            {"id": 2, "name": "แผนกศัลยกรรม (Surgery)", "code": "B"},
-            {"id": 3, "name": "แผนกกุมารเวชกรรม (Pediatrics)", "code": "C"}
+            {"id": 1, "name": "แผนกอายุรกรรม (General Medical)"},
+            {"id": 2, "name": "แผนกศัลยกรรม (Surgery)"},
+            {"id": 3, "name": "แผนกกุมารเวชกรรม (Pediatrics)"},
+            {"id": 4, "name": "แผนกสูตินรีเวชกรรม (Obstetrics & Gynecology)"},
+            {"id": 5, "name": "แผนกจักษุวิทยา (Ophthalmology)"},
+            {"id": 6, "name": "แผนกทันตกรรม (Dental Clinic)"},
+            {"id": 7, "name": "แผนกกระดูกและข้อ (Orthopedics)"},
+            {"id": 8, "name": "แผนกอุบัติเหตุและฉุกเฉิน (Emergency Room)"}
         ]
         for s in default_services:
             existing = db.query(models.Service).filter(models.Service.id == s["id"]).first()
             if not existing:
-                new_service = models.Service(**s)
+                new_service = models.Service(id=s["id"], name=s["name"])
                 db.add(new_service)
         db.commit()
 
@@ -85,12 +90,21 @@ app.include_router(reviews.router)
 
 
 # ========================================================
-# FRONTEND PAGES
+# FRONTEND PAGES (ปรับให้ / เปิดหน้ารอโหลด แล้วเด้งไป /home)
 # ========================================================
 
 @app.get("/")
+@app.get("/splash")
+def splash_page(request: Request):
+    """หน้าแรกสุดของคนไข้: หน้ารอโหลด (Splash Screen)"""
+    return templates.TemplateResponse(
+        request=request, 
+        name="splash.html"
+    )
+
+@app.get("/home")
 def home_page(request: Request):
-    """หน้าแรก: เข้าสู่ระบบ / เลือกประเภทบริการ (ธรรมดา / โปร)"""
+    """หน้าหลักคนไข้: เลือกแพ็กเกจ / สแกน QR / ค้นหาชื่อ (index.html)"""
     return templates.TemplateResponse(
         request=request, 
         name="index.html"
@@ -107,7 +121,7 @@ def nurse_page(request: Request):
 @app.get("/track")
 @app.get("/track/{token}")
 def track_page(request: Request, token: Optional[str] = ""):
-    """หน้าติดตามคิวสาธารณะ: รองรับทั้ง Query String (?q=A-001) และ Path Parameter (/track/token)"""
+    """หน้าติดตามคิวสำหรับคนไข้"""
     return templates.TemplateResponse(
         request=request, 
         name="track.html", 

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueCare - Loading</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS อนิเมชันพื้นหลังสไตล์ลวดลายเส้นทะแยง */
+        .bg-pattern {
+            background-color: #f8fafc;
+            background-image: repeating-linear-gradient(
+                45deg,
+                #f1f5f9 0,
+                #f1f5f9 15px,
+                #f8fafc 0,
+                #f8fafc 40px
+            );
+        }
+
+        /* อนิเมชัน Fade-in สำหรับโลโก้ */
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.85); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fadeInScale 0.8s ease-out forwards;
+        }
+
+        /* อนิเมชันลอยเบาๆ (Floating) สำหรับไอคอนตกแต่ง */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-pattern h-screen w-screen flex flex-col justify-between overflow-hidden font-sans select-none">
+
+    <!-- ================= ส่วนบน: LOGO & BRANDING ================= -->
+    <div class="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+        <!-- ไอคอนโลโก้หลัก -->
+        <div class="w-24 h-24 bg-teal-50 border-4 border-teal-500 rounded-3xl flex items-center justify-center shadow-lg mb-4 transform hover:scale-105 transition">
+            <span class="text-5xl">🏥</span>
+        </div>
+
+        <!-- ชื่อแอป QueueCare -->
+        <h1 class="text-4xl font-extrabold tracking-tight text-teal-800">
+            Queue<span class="text-teal-600">Care</span>
+        </h1>
+        
+        <!-- ข้อความสโลแกน -->
+        <p class="text-slate-500 text-sm mt-1 font-medium tracking-wide">
+            ระบบบริหารจัดการคิวโรงพยาบาลอัจฉริยะ
+        </p>
+    </div>
+
+    <!-- ================= ส่วนล่าง: CURVED CARD & LOADING BAR ================= -->
+    <div class="relative bg-gradient-to-br from-teal-600 via-teal-700 to-teal-900 rounded-t-[40px] p-8 text-white shadow-2xl overflow-hidden min-h-[42vh] flex flex-col justify-between">
+        
+        <!-- ลวดลายเรขาคณิตตกแต่งพื้นหลังส่วนล่าง -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-teal-500/20 rounded-full blur-xl pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-32 h-32 bg-teal-400/20 rounded-full blur-lg pointer-events-none"></div>
+
+        <!-- ไอคอนลอยตกแต่งสไตล์ 3D -->
+        <div class="flex justify-around items-center pt-2 px-6">
+            <div class="bg-white/10 backdrop-blur-md p-3 rounded-2xl shadow-inner border border-white/20 animate-float" style="animation-delay: 0s;">
+                <span class="text-3xl">🎫</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl shadow-inner border border-white/20 animate-float" style="animation-delay: 0.5s;">
+                <span class="text-4xl">🩺</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md p-3 rounded-2xl shadow-inner border border-white/20 animate-float" style="animation-delay: 1s;">
+                <span class="text-3xl">⚡</span>
+            </div>
+        </div>
+
+        <!-- หลอดรอโหลด (Progress Bar) & สถานะ -->
+        <div class="space-y-3 pb-6 relative z-10">
+            <div class="flex justify-between items-center text-xs font-semibold tracking-wider text-teal-100">
+                <span id="loadingText" class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-yellow-300 animate-ping"></span>
+                    กำลังโหลดข้อมูลระบบ...
+                </span>
+                <span id="progressPercent" class="font-bold text-yellow-300">0%</span>
+            </div>
+
+            <!-- กรอบหลอด Progress Bar -->
+            <div class="w-full bg-teal-950/40 rounded-full h-3 p-0.5 border border-white/10 overflow-hidden shadow-inner">
+                <div id="progressBar" class="bg-gradient-to-r from-yellow-300 to-emerald-400 h-full rounded-full transition-all duration-100 ease-out w-0 shadow-md"></div>
+            </div>
+
+            <p class="text-[11px] text-center text-teal-200/70 pt-1">
+                QueueCare v1.0 • Ready for Hospital Service
+            </p>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT: สั่งนับหลอดโหลด & เปลี่ยนหน้า ================= -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const loadingText = document.getElementById('loadingText');
+
+            let progress = 0;
+            const duration = 2500; // ระยะเวลาโหลดรวม (2.5 วินาที)
+            const intervalTime = 30;
+            const increment = 100 / (duration / intervalTime);
+
+            const timer = setInterval(() => {
+                progress += increment;
+                
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(timer);
+                    
+                    loadingText.innerText = "✨ ระบบพร้อมใช้งานแล้ว!";
+                    
+                    // เปลี่ยนหน้าพาคนไข้ไปที่หน้าหลัก (/home)
+                    setTimeout(() => {
+                        window.location.href = "/home"; 
+                    }, 300);
+                }
+
+                progressBar.style.width = `${progress}%`;
+                progressPercent.innerText = `${Math.floor(progress)}%`;
+            }, intervalTime);
+        });
+    </script>
+</body>
+</html>

@@ -48,6 +48,11 @@
                             <option value="1">แผนกอายุรกรรม (General Medical)</option>
                             <option value="2">แผนกศัลยกรรม (Surgery)</option>
                             <option value="3">แผนกกุมารเวชกรรม (Pediatrics)</option>
+                            <option value="4">แผนกสูตินรีเวชกรรม (Obstetrics & Gynecology)</option>
+                            <option value="5">แผนกจักษุวิทยา (Ophthalmology)</option>
+                            <option value="6">แผนกทันตกรรม (Dental Clinic)</option>
+                            <option value="7">แผนกกระดูกและข้อ (Orthopedics)</option>
+                            <option value="8">แผนกอุบัติเหตุและฉุกเฉิน (Emergency Room)</option>
                         </select>
                     </div>
 
@@ -120,6 +125,24 @@
 
         let queueHistory = [];
         let queueSeq = 1;
+
+        // ดึงแผนกจาก Database มาอัปเดตช่องเลือกแผนกแบบไดนามิก
+        async function loadServices() {
+            try {
+                const response = await fetch('/services/');
+                if (response.ok) {
+                    const services = await response.json();
+                    if (services && services.length > 0) {
+                        const select = document.getElementById('serviceId');
+                        select.innerHTML = services.map(s => 
+                            `<option value="${s.id}">${s.name}</option>`
+                        ).join('');
+                    }
+                }
+            } catch (err) {
+                console.warn("Dynamic service load fallback to static options.");
+            }
+        }
 
         // 1. ฟังก์ชันแอบ Login อัตโนมัติในเบื้องหลัง
         async function silentLogin() {
@@ -283,9 +306,10 @@
             slip.classList.add('hidden');
         }
 
-        // เริ่มต้นทำงาน: Auto Login ทันทีที่เปิดหน้าเว็บ
+        // เริ่มต้นทำงาน: Auto Login & Load Services ทันทีที่เปิดหน้าเว็บ
         window.onload = () => {
             silentLogin();
+            loadServices();
             document.getElementById('patientName').focus();
         };
     </script>
