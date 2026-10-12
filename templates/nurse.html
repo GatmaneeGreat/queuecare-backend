@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบออกคิวสำหรับพยาบาล - QueueCare</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 1. นำเข้าไลบรารีสำหรับสร้างรูป QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         @media print {
             body * { visibility: hidden; }
@@ -111,6 +113,13 @@
         <h1 id="slipQueueNumber" class="text-4xl font-black my-2">A000</h1>
         <p id="slipPatientName" class="font-bold text-sm">ชื่อผู้ป่วย</p>
         <p id="slipService" class="text-xs text-slate-500">แผนกบริการ</p>
+        
+        <hr class="my-2 border-dashed">
+        
+        <!-- 2. เพิ่มกล่องแสดงคิวอาร์โค้ด -->
+        <div id="qrcode" class="flex justify-center my-2"></div>
+        <p class="text-[10px] text-slate-700 font-bold">สแกนเพื่อติดตามสถานะคิวบนมือถือ</p>
+        
         <hr class="my-2 border-dashed">
         <p id="slipDate" class="text-[10px] text-slate-400"></p>
         <p class="text-[10px] text-slate-400">กรุณารอฟังประกาศเรียกคิว</p>
@@ -300,10 +309,33 @@
             document.getElementById('slipService').innerText = serviceName;
             document.getElementById('slipDate').innerText = new Date().toLocaleString('th-TH');
 
+            // 3. จัดการสร้างรูป QR Code 
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = ""; // ล้างรูปเก่าออกก่อน
+            
+            // ดึง Token มาต่อเป็นลิงก์ /track/{token}
+            const token = queueData.share_token || queueData.token;
+            if (token) {
+                const trackUrl = `${window.location.origin}/track/${token}`;
+                
+                new QRCode(qrContainer, {
+                    text: trackUrl,
+                    width: 100,  // ขนาดความกว้าง QR Code
+                    height: 100, // ขนาดความสูง QR Code
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.L
+                });
+            }
+
             const slip = document.getElementById('printableSlip');
             slip.classList.remove('hidden');
-            window.print();
-            slip.classList.add('hidden');
+            
+            // ใช้ setTimeout หน่วงเวลา 0.1 วินาที ให้บราวเซอร์วาด QR Code เสร็จก่อนเด้งหน้าจอปรินต์
+            setTimeout(() => {
+                window.print();
+                slip.classList.add('hidden');
+            }, 100);
         }
 
         // เริ่มต้นทำงาน: Auto Login & Load Services ทันทีที่เปิดหน้าเว็บ
