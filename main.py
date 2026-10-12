@@ -3,6 +3,7 @@ os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"  # ป้องกัน C-Extension
 
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -17,6 +18,13 @@ from routers import auth, services, queues, transactions, reviews
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="QueueCare API")
+app.mount(
+    "/static",
+    StaticFiles(
+        directory=str(Path(__file__).resolve().parent / "static")
+    ),
+    name="static",
+)
 
 # ========================================================
 # AUTO-SETUP & AUTO-SEED ON STARTUP (ระบบสร้างข้อมูลอัตโนมัติ)
