@@ -1,5 +1,6 @@
+
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 
@@ -10,14 +11,16 @@ from datetime import datetime
 class UserRegister(BaseModel):
     name: str
     email: EmailStr
-    password: str
-    role: Optional[str] = "customer"
+    password: str = Field(..., min_length=8, max_length=72)
+    hospital_id: int = Field(..., gt=0)
 
 
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
     role: Optional[str] = "customer"
+    position: Optional[str] = None
+    hospital_id: Optional[int] = None
 
 
 class UserResponse(BaseModel):
@@ -25,6 +28,9 @@ class UserResponse(BaseModel):
     name: str
     email: str
     role: str
+    position: Optional[str] = None
+    hospital_id: Optional[int] = None
+    approval_status: str = "approved"
 
     class Config:
         from_attributes = True
@@ -33,6 +39,81 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+# =========================================================
+# NURSE APPROVAL
+# =========================================================
+
+class NurseDecision(BaseModel):
+    approval_status: Literal["approved", "rejected"]
+    position: Optional[str] = Field(default=None, max_length=100)
+
+
+# =========================================================
+# HOSPITAL & SUBSCRIPTION
+# =========================================================
+
+class HospitalCreate(BaseModel):
+    name: str
+    package: str = "free"
+
+
+class HospitalUpdate(BaseModel):
+    name: Optional[str] = None
+    package: Optional[str] = None
+    subscription_status: Optional[str] = None
+
+
+class HospitalResponse(BaseModel):
+    id: int
+    name: str
+    package: str
+    subscription_status: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# =========================================================
+# HOSPITAL ADMIN
+# =========================================================
+
+class HospitalAdminCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=72)
+    hospital_id: int = Field(..., gt=0)
+
+
+# =========================================================
+# HOSPITAL NURSE UPDATE
+# =========================================================
+
+class HospitalNurseUpdate(BaseModel):
+    position: Optional[str] = Field(default=None, max_length=100)
+    service_id: Optional[int] = Field(default=None, gt=0)
+
+
+# =========================================================
+# NURSE PROFILE
+# =========================================================
+
+class NurseProfileResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    position: Optional[str] = None
+    hospital_id: Optional[int] = None
+    hospital_name: Optional[str] = None
+    package: Optional[str] = None
+    subscription_status: Optional[str] = None
+    approval_status: str = "approved"
+
+    class Config:
+        from_attributes = True
 
 
 # =========================================================
@@ -66,7 +147,7 @@ class QueueCreate(BaseModel):
     number: str
     user_id: int
     service_id: Optional[int] = None
-    patient_name: Optional[str] = None  # <-- เพิ่มบรรทัดนี้เพื่อรับชื่อผู้ป่วย
+    patient_name: Optional[str] = None
 
 
 class QueueUpdate(BaseModel):
@@ -97,7 +178,6 @@ class QueueResponse(BaseModel):
 # PUBLIC QUEUE RESPONSE
 # =========================================================
 
-# [แก้ข้อ 3] schema ผู้ใช้สำหรับลิงก์สาธารณะ ส่งแค่ชื่อ ไม่ส่ง email/id/role
 class PublicUserResponse(BaseModel):
     name: str
 
@@ -109,11 +189,10 @@ class PublicQueueResponse(BaseModel):
     id: int
     number: str
     status: str
-    # [แก้ข้อ 3] ตัด user_id และ share_token ออก
     service_id: Optional[int] = None
     created_at: datetime
 
-    user: Optional[PublicUserResponse] = None   # [แก้ข้อ 3] เดิม UserResponse
+    user: Optional[PublicUserResponse] = None
     service: Optional[ServiceResponse] = None
 
     ahead_count: int = 0
@@ -152,7 +231,7 @@ class ReviewCreate(BaseModel):
         ...,
         ge=1,
         le=5,
-        description="คะแนน 1 ถึง 5 ดาว"
+        description="คะแนน 1 ถึง 5 ดาว",
     )
     comment: Optional[str] = None
 
@@ -165,3 +244,39 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ========================================================
+# SUBSCRIPTION PAYMENT
+# ========================================================
+
+class SubscriptionPaymentCreate(BaseModel):
+    payment_method: Literal["promptpay_demo"] = "promptpay_demo"
+
+
+class SubscriptionPaymentResponse(BaseModel):
+    id: int
+    hospital_id: int
+    amount: int
+    package: str
+    payment_method: str
+    reference: Optional[str] = None
+    status: str
+    is_demo: bool
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class HospitalSubscriptionResponse(BaseModel):
+    hospital_id: int
+    hospital_name: str
+    package: str
+    subscription_status: str
+    subscription_started_at: Optional[datetime] = None
+    subscription_expires_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
