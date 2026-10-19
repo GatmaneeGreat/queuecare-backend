@@ -1,8 +1,10 @@
+
+import re
 import uuid
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy import text
+from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 import models
@@ -12,223 +14,266 @@ import security
 
 router = APIRouter(
     prefix="/queues",
-    tags=["Queues"]
+    tags=["Queues"],
 )
 
 
-# =========================================================
-# CREATE QUEUE
-# POST /queues/
-# =========================================================
+def get_queue_number_value(number: str) -> int:
+    """Read old Q numbers and current A numbers."""
+    match = re.match(r"^[QA](\d+)$", str(number or ""), re.IGNORECASE)
+    return int(match.group(1)) if match else 0
 
+
+# --------------------------------------------------
+# Create a queue
+# Backend generates the queue number.
+# --------------------------------------------------
 @router.post(
     "/",
     response_model=schemas.QueueResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 def create_queue(
     queue: schemas.QueueCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
+    current_user: models.User = Depends(security.get_current_user),
 ):
-    # 1. เช็กว่าพยาบาลส่งชื่อคนไข้มาด้วยไหม
-    patient_name = getattr(queue, "patient_name", None)
-
-    assigned_user_id = current_user.id
-
-    # 2. ถ้ามีชื่อคนไข้ ให้สร้าง User จำลองให้ผู้ป่วย เพื่อให้ค้นหาชื่อเจอ
-    if patient_name:
-        clean_name = patient_name.strip()
-        existing_user = db.query(models.User).filter(models.User.name == clean_name).first()
-
-        if not existing_user:
-            # สร้างอีเมลและรหัสผ่านจำลอง เพื่อป้องกัน Database Error 500
-            dummy_email = f"patient_{uuid.uuid4().hex[:8]}@example.com"
-            new_user = models.User(
-                name=clean_name,
-                email=dummy_email,
-                hashed_password="dummy_password",
-                role="patient"
-            )
-            db.add(new_user)
-            db.commit()
-            db.refresh(new_user)
-            assigned_user_id = new_user.id
-        else:
-            assigned_user_id = existing_user.id
-
-    # 3. สร้างคิวและผูกกับ ID คนไข้
-    new_queue = models.Queue(
-        number=queue.number,
-        user_id=assigned_user_id,
-        service_id=queue.service_id,
-        share_token=str(uuid.uuid4())
-    )
-
-    # กรณีฐานข้อมูล Queue มีคอลัมน์ patient_name โดยตรงให้บันทึกด้วย
-    if hasattr(new_queue, "patient_name") and patient_name:
-        new_queue.patient_name = clean_name
-
-    db.add(new_queue)
-    db.commit()
-    db.refresh(new_queue)
-
-    return new_queue
-
-
-# =========================================================
-# GET ALL QUEUES
-# GET /queues/
-# =========================================================
-
-@router.get(
-    "/",
-    response_model=List[schemas.QueueResponse]
-)
-def get_queues(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
-):
-    return db.query(models.Queue).all()
-
-
-# =========================================================
-# SEARCH QUEUE BY PATIENT NAME
-# GET /queues/search?name=John%20Doe
-# =========================================================
-
-@router.get("/search")
-def search_queue_by_name(
-    name: str,
-    db: Session = Depends(get_db)
-):
-    search_name = " ".join(name.split())
-    if not search_name:
+    if queue.service_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="กรุณาระบุชื่อผู้ป่วย"
+            detail="Please select a service department.",
         )
 
-    # 1. ค้นหาชื่อคนไข้จากตาราง User (รองรับการพิมพ์แค่บางส่วน)
-    users = db.query(models.User).filter(models.User.name.ilike(f"%{search_name}%")).all()
-    queue = None
+    try:
+        # Lock number generation for this service.
+        # This requires PostgreSQL.
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(:lock_id)"),
+            {"lock_id": int(queue.service_id)},
+        )
 
-    if users:
-        user_ids = [u.id for u in users]
-        queue = (
-            db.query(models.Queue)
-            .filter(
-                models.Queue.user_id.in_(user_ids),
-                models.Queue.status.in_(["waiting", "serving"])
-            )
-            .order_by(models.Queue.id.desc())
+        service = (
+            db.query(models.Service)
+            .filter(models.Service.id == queue.service_id)
             .first()
         )
 
-    # 2. ค้นหาสำรองจากคอลัมน์ patient_name ในตาราง Queue โดยตรง
-    if not queue and hasattr(models.Queue, "patient_name"):
-        queue = (
-            db.query(models.Queue)
-            .filter(
-                models.Queue.patient_name.ilike(f"%{search_name}%"),
-                models.Queue.status.in_(["waiting", "serving"])
+        if service is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Service department not found.",
             )
-            .order_by(models.Queue.id.desc())
+
+        existing_queues = (
+            db.query(models.Queue)
+            .filter(models.Queue.service_id == queue.service_id)
+            .all()
+        )
+
+        highest_number = max(
+            (
+                get_queue_number_value(item.number)
+                for item in existing_queues
+            ),
+            default=0,
+        )
+
+        new_number = f"A{highest_number + 1:03d}"
+
+        # Preserve the existing patient-name behavior.
+        patient_name = getattr(queue, "patient_name", None)
+        assigned_user_id = current_user.id
+
+        if patient_name and patient_name.strip():
+            clean_name = patient_name.strip()
+
+            patient = (
+                db.query(models.User)
+                .filter(models.User.name == clean_name)
+                .filter(models.User.role == "patient")
+                .first()
+            )
+
+            if patient is None:
+                patient = models.User(
+                    name=clean_name,
+                    email=f"patient_{uuid.uuid4().hex[:12]}@example.com",
+                    hashed_password="dummy_password",
+                    role="patient",
+                )
+                db.add(patient)
+                db.flush()
+
+            assigned_user_id = patient.id
+
+        new_queue = models.Queue(
+            number=new_number,
+            status="waiting",
+            user_id=assigned_user_id,
+            service_id=queue.service_id,
+            share_token=str(uuid.uuid4()),
+        )
+
+        db.add(new_queue)
+        db.commit()
+        db.refresh(new_queue)
+
+        return new_queue
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to create queue. Please try again.",
+        ) from exc
+
+
+# --------------------------------------------------
+# Get queues
+# --------------------------------------------------
+@router.get("/", response_model=list[schemas.QueueResponse])
+def get_queues(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return (
+        db.query(models.Queue)
+        .options(
+            joinedload(models.Queue.user),
+            joinedload(models.Queue.service),
+        )
+        .order_by(models.Queue.created_at.desc())
+        .all()
+    )
+
+
+# --------------------------------------------------
+# Search a patient's latest active queue
+# Public endpoint
+# --------------------------------------------------
+@router.get("/search")
+def search_queue(
+    name: str,
+    db: Session = Depends(get_db),
+):
+    clean_name = name.strip()
+
+    if not clean_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please enter a patient name.",
+        )
+
+    patient_users = (
+        db.query(models.User)
+        .filter(models.User.name.ilike(f"%{clean_name}%"))
+        .all()
+    )
+
+    patient_ids = [patient.id for patient in patient_users]
+
+    found_queue = None
+
+    if patient_ids:
+        found_queue = (
+            db.query(models.Queue)
+            .filter(models.Queue.user_id.in_(patient_ids))
+            .filter(models.Queue.status.in_(["waiting", "serving"]))
+            .order_by(models.Queue.created_at.desc())
             .first()
         )
 
-    if not queue:
+    if found_queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ไม่พบผู้ป่วยชื่อ '{search_name}'"
+            detail="No active queue found for this patient.",
         )
 
-    # [แก้ 1] ถ้าคิวเก่ายังไม่มี token ให้สร้างและบันทึกให้เลย
-    if not queue.share_token:
-        queue.share_token = str(uuid.uuid4())
+    if not found_queue.share_token:
+        found_queue.share_token = str(uuid.uuid4())
         db.commit()
-        db.refresh(queue)
+        db.refresh(found_queue)
 
-    # ดึงชื่อเพื่อส่งกลับหน้าเว็บ
-    patient_name_result = getattr(queue, "patient_name", None)
-    if not patient_name_result and queue.user:
-        patient_name_result = queue.user.name
+    patient = (
+        db.query(models.User)
+        .filter(models.User.id == found_queue.user_id)
+        .first()
+    )
 
-    # 3. จัด Format คืนค่าให้ตรงกับตัวแปรที่หน้า index.html ต้องการ
     return {
         "status": "success",
-        "token": queue.share_token,   # [แก้ 1] เดิม: queue.share_token or queue.number
-        "queue_number": queue.number,
-        "patient_name": patient_name_result or search_name
+        "token": found_queue.share_token,
+        "queue_number": found_queue.number,
+        "patient_name": patient.name if patient else "Patient",
     }
 
 
-# =========================================================
-# UPDATE QUEUE STATUS
-# PATCH /queues/{queue_id}/status
-# =========================================================
-
-@router.patch(
-    "/{queue_id}/status",
-    response_model=schemas.QueueResponse
-)
+# --------------------------------------------------
+# Update queue status
+# --------------------------------------------------
+@router.patch("/{queue_id}/status", response_model=schemas.QueueResponse)
 def update_queue_status(
     queue_id: int,
-    status_data: schemas.QueueStatusUpdate,
+    new_status: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
+    current_user: models.User = Depends(security.get_current_user),
 ):
-    allowed_statuses = ["waiting", "serving", "completed", "cancelled"]
+    allowed_statuses = {
+        "waiting",
+        "serving",
+        "completed",
+        "cancelled",
+    }
 
-    if status_data.status not in allowed_statuses:
+    if new_status not in allowed_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="สถานะคิวไม่ถูกต้อง"
+            detail="Invalid queue status.",
         )
 
-    queue = db.query(models.Queue).filter(models.Queue.id == queue_id).first()
+    queue = (
+        db.query(models.Queue)
+        .filter(models.Queue.id == queue_id)
+        .first()
+    )
 
     if queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="ไม่พบคิวที่ต้องการ"
+            detail="Queue not found.",
         )
 
-    queue.status = status_data.status
+    queue.status = new_status
     db.commit()
     db.refresh(queue)
 
     return queue
 
 
-# =========================================================
-# CALL NEXT QUEUE
-# POST /queues/next?service_id=1
-# =========================================================
-
-@router.post(
-    "/next",
-    response_model=schemas.QueueResponse
-)
+# --------------------------------------------------
+# Call the next waiting queue in a service
+# --------------------------------------------------
+@router.post("/next", response_model=schemas.QueueResponse)
 def call_next_queue(
     service_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(security.get_current_user)
+    current_user: models.User = Depends(security.get_current_user),
 ):
     next_queue = (
         db.query(models.Queue)
-        .filter(
-            models.Queue.service_id == service_id,
-            models.Queue.status == "waiting"
-        )
-        .order_by(models.Queue.id.asc())
+        .filter(models.Queue.service_id == service_id)
+        .filter(models.Queue.status == "waiting")
+        .order_by(models.Queue.created_at.asc(), models.Queue.id.asc())
         .first()
     )
 
     if next_queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="ไม่มีคิวที่กำลังรอสำหรับบริการนี้"
+            detail="There are no waiting queues for this service.",
         )
 
     next_queue.status = "serving"
@@ -238,62 +283,55 @@ def call_next_queue(
     return next_queue
 
 
-# =========================================================
-# PUBLIC QUEUE
-# GET /queues/public/{token}
-# =========================================================
-
+# --------------------------------------------------
+# Public queue tracking by token
+# --------------------------------------------------
 @router.get(
     "/public/{token}",
-    response_model=schemas.PublicQueueResponse
+    response_model=schemas.PublicQueueResponse,
 )
 def get_public_queue(
     token: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    queue = db.query(models.Queue).filter(models.Queue.share_token == token).first()
+    queue = (
+        db.query(models.Queue)
+        .filter(models.Queue.share_token == token)
+        .first()
+    )
 
     if queue is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="ไม่พบคิวจากลิงก์นี้"
+            detail="Queue not found.",
         )
 
-    ahead_count = 0
-    if queue.service_id is not None:
-        ahead_count = (
-            db.query(models.Queue)
-            .filter(
-                models.Queue.service_id == queue.service_id,
-                models.Queue.status == "waiting",
-                models.Queue.id < queue.id
-            )
-            .count()
-        )
-
-    current_serving = None
-    if queue.service_id is not None:
-        current_serving = (
-            db.query(models.Queue)
-            .filter(
-                models.Queue.service_id == queue.service_id,
-                models.Queue.status == "serving"
-            )
-            .order_by(models.Queue.id.desc())
-            .first()
-        )
-
-    # [แก้ 2] ตัด user_id และ share_token ออก ให้ตรงกับ PublicQueueResponse ที่แก้แล้ว
-    return schemas.PublicQueueResponse(
-        id=queue.id,
-        number=queue.number,
-        status=queue.status,
-        service_id=queue.service_id,
-        created_at=queue.created_at,
-        user=queue.user,
-        service=queue.service,
-        ahead_count=ahead_count,
-        current_serving_number=(
-            current_serving.number if current_serving else None
-        )
+    ahead_count = (
+        db.query(models.Queue)
+        .filter(models.Queue.service_id == queue.service_id)
+        .filter(models.Queue.status == "waiting")
+        .filter(models.Queue.created_at < queue.created_at)
+        .count()
     )
+
+    serving_queue = (
+        db.query(models.Queue)
+        .filter(models.Queue.service_id == queue.service_id)
+        .filter(models.Queue.status == "serving")
+        .order_by(models.Queue.created_at.asc())
+        .first()
+    )
+
+    return {
+        "id": queue.id,
+        "number": queue.number,
+        "status": queue.status,
+        "service_id": queue.service_id,
+        "created_at": queue.created_at,
+        "user": queue.user,
+        "service": queue.service,
+        "ahead_count": ahead_count,
+        "current_serving_number": (
+            serving_queue.number if serving_queue else None
+        ),
+    }
