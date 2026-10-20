@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -5,27 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบออกคิวสำหรับพยาบาล - QueueCare</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 1. นำเข้าไลบรารีสำหรับสร้างรูป QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
         @media print {
             body * { visibility: hidden; }
             #printableSlip, #printableSlip * { visibility: visible; }
-            #printableSlip { position: absolute; left: 0; top: 0; width: 100%; }
+            #printableSlip {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
             .no-print { display: none !important; }
         }
     </style>
 </head>
+
 <body class="bg-slate-100 min-h-screen p-6 font-sans">
 
-    <!-- ส่วนฟอร์มของพยาบาล (ไม่พิมพ์ออกกระดาษ) -->
     <div class="max-w-4xl mx-auto space-y-6 no-print">
-        
+
         <!-- Header -->
         <div class="bg-teal-700 text-white p-4 rounded-xl shadow-md flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-bold">🏥 QueueCare - จุดลงทะเบียนออกคิว</h1>
-                <p class="text-xs text-teal-100">สถานะระบบ: <span id="authStatus" class="font-bold text-yellow-300">กำลังเชื่อมต่อ...</span></p>
+                <p class="text-xs text-teal-100">
+                    สถานะระบบ:
+                    <span id="authStatus" class="font-bold text-yellow-300">กำลังเชื่อมต่อ...</span>
+                </p>
             </div>
             <div class="text-right text-sm">
                 <span class="bg-teal-800 px-3 py-1 rounded-full text-xs">พยาบาลประจำการ</span>
@@ -33,58 +42,122 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
             <!-- ฟอร์มออกคิว -->
             <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
-                <h2 class="text-lg font-bold text-slate-800 border-b pb-2">ออกคิวผู้ป่วยใหม่</h2>
-                
+                <h2 class="text-lg font-bold text-slate-800 border-b pb-2">
+                    ออกคิวผู้ป่วยใหม่
+                </h2>
+
                 <form id="queueForm" onsubmit="handleCreateQueue(event)" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อ - นามสกุล ผู้ป่วย <span class="text-red-500">*</span></label>
-                        <input type="text" id="patientName" required placeholder="กรอกชื่อ-นามสกุล..." 
-                               class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-lg">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            ชื่อ - นามสกุล ผู้ป่วย <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="patientName"
+                            required
+                            maxlength="150"
+                            placeholder="กรอกชื่อ-นามสกุล..."
+                            class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-lg">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">เลือกแผนก / บริการ</label>
-                        <select id="serviceId" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                            <option value="1">แผนกอายุรกรรม (General Medical)</option>
-                            <option value="2">แผนกศัลยกรรม (Surgery)</option>
-                            <option value="3">แผนกกุมารเวชกรรม (Pediatrics)</option>
-                            <option value="4">แผนกสูตินรีเวชกรรม (Obstetrics & Gynecology)</option>
-                            <option value="5">แผนกจักษุวิทยา (Ophthalmology)</option>
-                            <option value="6">แผนกทันตกรรม (Dental Clinic)</option>
-                            <option value="7">แผนกกระดูกและข้อ (Orthopedics)</option>
-                            <option value="8">แผนกอุบัติเหตุและฉุกเฉิน (Emergency Room)</option>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            เลือกแผนก / บริการ
+                        </label>
+                        <select
+                            id="serviceId"
+                            onchange="renderCurrentServingQueue()"
+                            class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            <option value="1">General Checkup</option>
+                            <option value="2">Surgery</option>
+                            <option value="3">Pediatrics</option>
+                            <option value="4">Obstetrics & Gynecology</option>
+                            <option value="5">Ophthalmology</option>
+                            <option value="6">Dental Clinic</option>
+                            <option value="7">Orthopedics</option>
+                            <option value="8">Emergency Room</option>
                         </select>
                     </div>
 
-                    <button type="submit" id="submitBtn" 
-                            class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow transition duration-200 flex items-center justify-center gap-2">
+                    <button
+                        type="submit"
+                        id="submitBtn"
+                        class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow transition duration-200 flex items-center justify-center gap-2">
                         <span>🖨️ บันทึกข้อมูล & พิมพ์สลิปคิว</span>
                     </button>
                 </form>
             </div>
 
-            <!-- การแสดงผลคิวล่าสุดที่เพิ่งออกไป -->
+            <!-- คิวล่าสุด -->
             <div class="bg-white p-6 rounded-2xl shadow-md space-y-4 flex flex-col justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2">คิวล่าสุดที่เพิ่งออกไป</h2>
-                    <div id="latestQueueCard" class="mt-4 p-6 bg-teal-50 border-2 border-teal-200 rounded-xl text-center space-y-2">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-2">
+                        คิวล่าสุดที่เพิ่งออกไป
+                    </h2>
+
+                    <div id="latestQueueCard"
+                         class="mt-4 p-6 bg-teal-50 border-2 border-teal-200 rounded-xl text-center space-y-2">
                         <p class="text-sm text-teal-600 font-medium">หมายเลขคิวปัจจุบัน</p>
                         <p id="displayQueueNumber" class="text-5xl font-black text-teal-700">-</p>
-                        <p id="displayPatientName" class="text-lg font-bold text-slate-700">ยังไม่มีการออกคิว</p>
+                        <p id="displayPatientName" class="text-lg font-bold text-slate-700">
+                            ยังไม่มีการออกคิว
+                        </p>
                         <p id="displayTime" class="text-xs text-slate-400"></p>
                     </div>
                 </div>
+
                 <div class="text-xs text-slate-400 text-center">
                     * ข้อมูลจะถูกบันทึกลงฐานข้อมูลทันที และรันคิวต่อไปอัตโนมัติ
                 </div>
             </div>
         </div>
 
-        <!-- ตารางประวัติการออกคิวล่าสุด -->
+        <!-- ระบบเรียกคิว -->
+        <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
+            <h3 class="text-lg font-bold text-slate-700">
+                📢 ระบบเรียกคิวผู้ป่วย
+            </h3>
+
+            <p class="text-sm text-slate-500">
+                แผนกที่เลือก:
+                <span id="callingServiceName" class="font-bold text-teal-700">
+                    General Checkup
+                </span>
+            </p>
+
+            <div class="rounded-xl bg-teal-50 p-5 text-center">
+                <p class="text-sm text-slate-500">คิวที่กำลังให้บริการ</p>
+
+                <p id="servingQueueNumber"
+                   class="my-2 text-4xl font-extrabold text-teal-700">-</p>
+
+                <p id="servingPatientName" class="font-bold text-slate-700">
+                    กำลังโหลดข้อมูลคิว...
+                </p>
+
+                <p id="callingQueueStatus" class="mt-2 text-sm text-slate-500">
+                    กำลังตรวจสอบคิวที่กำลังให้บริการ
+                </p>
+            </div>
+
+            <button
+                type="button"
+                id="nextQueueBtn"
+                onclick="handleNextQueue()"
+                class="w-full rounded-xl bg-teal-600 px-5 py-3 font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50">
+                📢 เรียกคิวถัดไป (Next Queue)
+            </button>
+        </div>
+
+        <!-- ประวัติคิว -->
         <div class="bg-white p-6 rounded-2xl shadow-md space-y-3">
-            <h3 class="font-bold text-slate-700">ประวัติการออกคิววันนี้ (อัปเดตสด)</h3>
+            <h3 class="font-bold text-slate-700">
+                ประวัติการออกคิววันนี้ (อัปเดตสด)
+            </h3>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-slate-600">
                     <thead class="text-xs text-slate-700 uppercase bg-slate-100">
@@ -96,66 +169,58 @@
                         </tr>
                     </thead>
                     <tbody id="queueHistoryTable">
-                        <tr><td colspan="4" class="px-4 py-3 text-center text-slate-400">ยังไม่มีข้อมูลคิว</td></tr>
+                        <tr>
+                            <td colspan="4" class="px-4 py-3 text-center text-slate-400">
+                                กำลังโหลดข้อมูลคิว...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
-    <!-- ส่วนสลิปใบเสร็จ (แสดงเฉพาะตอนกดพิมพ์) -->
-    <div id="printableSlip" class="hidden print-only max-w-[300px] mx-auto p-4 bg-white border text-center space-y-2">
+    <!-- สลิปคิว -->
+    <div id="printableSlip"
+         class="hidden print-only max-w-[300px] mx-auto p-4 bg-white border text-center space-y-2">
         <h2 class="font-bold text-lg">บัตรคิวรับบริการ</h2>
         <p class="text-xs">โรงพยาบาล QueueCare</p>
         <hr class="my-2 border-dashed">
+
         <p class="text-xs">หมายเลขคิวของคุณ</p>
         <h1 id="slipQueueNumber" class="text-4xl font-black my-2">A000</h1>
         <p id="slipPatientName" class="font-bold text-sm">ชื่อผู้ป่วย</p>
         <p id="slipService" class="text-xs text-slate-500">แผนกบริการ</p>
-        
+
         <hr class="my-2 border-dashed">
-        
-        <!-- 2. เพิ่มกล่องแสดงคิวอาร์โค้ด -->
         <div id="qrcode" class="flex justify-center my-2"></div>
-        <p class="text-[10px] text-slate-700 font-bold">สแกนเพื่อติดตามสถานะคิวบนมือถือ</p>
-        
+        <p class="text-[10px] text-slate-700 font-bold">
+            สแกนเพื่อติดตามสถานะคิวบนมือถือ
+        </p>
+
         <hr class="my-2 border-dashed">
         <p id="slipDate" class="text-[10px] text-slate-400"></p>
         <p class="text-[10px] text-slate-400">กรุณารอฟังประกาศเรียกคิว</p>
     </div>
 
     <script>
-        // อีเมลและรหัสผ่านพยาบาลตั้งไว้ตายตัวสำหรับ Auto-Login
+        // บัญชี Auto-Login เดิมของโปรเจกต์
         const NURSE_CREDENTIALS = {
             username: "nurse@hospital.com",
             password: "password123"
         };
 
         let queueHistory = [];
-        let queueSeq = 1;
 
-        // ดึงแผนกจาก Database มาอัปเดตช่องเลือกแผนกแบบไดนามิก
-        async function loadServices() {
-            try {
-                const response = await fetch('/services/');
-                if (response.ok) {
-                    const services = await response.json();
-                    if (services && services.length > 0) {
-                        const select = document.getElementById('serviceId');
-                        select.innerHTML = services.map(s => 
-                            `<option value="${s.id}">${s.name}</option>`
-                        ).join('');
-                    }
-                }
-            } catch (err) {
-                console.warn("Dynamic service load fallback to static options.");
-            }
-        }
+        // ------------------------------
+        // Authentication
+        // ------------------------------
 
-        // 1. ฟังก์ชันแอบ Login อัตโนมัติในเบื้องหลัง
         async function silentLogin() {
-            document.getElementById('authStatus').innerText = "กำลังยืนยันตัวตน...";
+            const authStatus = document.getElementById('authStatus');
+
+            authStatus.textContent = 'กำลังยืนยันตัวตน...';
+
             try {
                 const formData = new URLSearchParams();
                 formData.append('username', NURSE_CREDENTIALS.username);
@@ -163,188 +228,528 @@
 
                 const response = await fetch('/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: formData
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    localStorage.setItem('access_token', data.access_token);
-                    document.getElementById('authStatus').innerText = "🟢 พร้อมใช้งาน";
-                    document.getElementById('authStatus').className = "font-bold text-green-300";
-                    return data.access_token;
-                } else {
-                    document.getElementById('authStatus').innerText = "🔴 ล็อกอินไม่สำเร็จ";
-                    document.getElementById('authStatus').className = "font-bold text-red-300";
+                if (!response.ok) {
+                    authStatus.textContent = '🔴 ล็อกอินไม่สำเร็จ';
+                    authStatus.className = 'font-bold text-red-300';
                     return null;
                 }
+
+                const data = await response.json();
+
+                if (!data.access_token) {
+                    throw new Error('ไม่พบ Access Token');
+                }
+
+                localStorage.setItem('access_token', data.access_token);
+
+                authStatus.textContent = '🟢 พร้อมใช้งาน';
+                authStatus.className = 'font-bold text-green-300';
+
+                return data.access_token;
+
             } catch (err) {
-                console.error("Auto Login Error:", err);
+                console.error('Auto Login Error:', err);
+                authStatus.textContent = '🔴 เชื่อมต่อไม่สำเร็จ';
+                authStatus.className = 'font-bold text-red-300';
                 return null;
             }
         }
 
-        // 2. ฟังก์ชันดึง Token (ถ้าไม่มีหรือหมดอายุ จะแอบ Login ใหม่ให้ทันที)
         async function getToken() {
             let token = localStorage.getItem('access_token');
+
             if (!token) {
                 token = await silentLogin();
             }
+
             return token;
         }
 
-        // 3. ฟังก์ชันหลักสำหรับบันทึกและออกคิว
-        async function handleCreateQueue(e) {
-            e.preventDefault();
-            
+        async function authenticatedFetch(url, options = {}) {
+            let token = await getToken();
+
+            if (!token) {
+                throw new Error('เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบบัญชีพยาบาล');
+            }
+
+            const makeRequest = authToken => fetch(url, {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            let response = await makeRequest(token);
+
+            if (response.status === 401) {
+                token = await silentLogin();
+
+                if (!token) {
+                    throw new Error('เข้าสู่ระบบใหม่ไม่สำเร็จ');
+                }
+
+                response = await makeRequest(token);
+            }
+
+            return response;
+        }
+
+        // ------------------------------
+        // Services
+        // ------------------------------
+
+        async function loadServices() {
+            try {
+                const response = await authenticatedFetch('/services/');
+
+                if (!response.ok) {
+                    console.warn('โหลดบริการไม่สำเร็จ ใช้รายการบริการเดิม');
+                    return;
+                }
+
+                const services = await response.json();
+
+                if (!Array.isArray(services) || services.length === 0) {
+                    return;
+                }
+
+                const select = document.getElementById('serviceId');
+                const previousValue = select.value;
+
+                select.innerHTML = '';
+
+                services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = service.name;
+                    select.appendChild(option);
+                });
+
+                if ([...select.options].some(option => option.value === previousValue)) {
+                    select.value = previousValue;
+                }
+
+                renderCurrentServingQueue();
+
+            } catch (err) {
+                console.warn('Dynamic service load fallback:', err.message);
+            }
+        }
+
+        // ------------------------------
+        // Queue history
+        // ------------------------------
+
+        async function loadQueueHistory() {
+            const tableBody = document.getElementById('queueHistoryTable');
+
+            try {
+                const response = await authenticatedFetch('/queues/');
+
+                if (!response.ok) {
+                    throw new Error(`โหลดประวัติคิวไม่สำเร็จ (${response.status})`);
+                }
+
+                const data = await response.json();
+
+                if (!Array.isArray(data)) {
+                    throw new Error('รูปแบบข้อมูลประวัติคิวไม่ถูกต้อง');
+                }
+
+                queueHistory = data.map(q => ({
+                    id: q.id,
+                    number: q.number,
+                    name: q.user?.name || q.patient_name || 'ไม่พบชื่อผู้ป่วย',
+                    serviceId: q.service_id ?? q.service?.id ?? null,
+                    serviceName: q.service?.name || '-',
+                    status: q.status || 'waiting',
+                    createdAt: q.created_at || null,
+                    time: q.created_at
+                        ? new Date(q.created_at).toLocaleTimeString('th-TH', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })
+                        : '-'
+                }));
+
+                renderQueueHistory();
+                renderCurrentServingQueue();
+
+            } catch (err) {
+                console.error('Load Queue History Error:', err);
+
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-center text-red-500">
+                            โหลดประวัติคิวไม่สำเร็จ กรุณารีเฟรชหน้าอีกครั้ง
+                        </td>
+                    </tr>
+                `;
+
+                document.getElementById('servingQueueNumber').textContent = '-';
+                document.getElementById('servingPatientName').textContent =
+                    'ไม่สามารถโหลดข้อมูลคิวได้';
+                document.getElementById('callingQueueStatus').textContent =
+                    'กรุณาตรวจสอบการเชื่อมต่อ';
+            }
+        }
+
+        function renderQueueHistory() {
+            const tableBody = document.getElementById('queueHistoryTable');
+
+            if (queueHistory.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-center text-slate-400">
+                            ยังไม่มีข้อมูลคิว
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const statusText = {
+                waiting: 'รอเรียก',
+                serving: 'กำลังให้บริการ',
+                completed: 'เสร็จสิ้น',
+                cancelled: 'ยกเลิก'
+            };
+
+            tableBody.innerHTML = queueHistory.map(q => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="px-4 py-2 font-bold text-teal-700">
+                        ${escapeQueueText(q.number)}
+                    </td>
+                    <td class="px-4 py-2">
+                        ${escapeQueueText(q.name)}
+                    </td>
+                    <td class="px-4 py-2">
+                        ${escapeQueueText(statusText[q.status] || q.status)}
+                    </td>
+                    <td class="px-4 py-2 text-xs text-slate-400">
+                        ${escapeQueueText(q.time)}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // แสดงคิว serving ของแผนกที่เลือกจากข้อมูลที่โหลดมาแล้ว
+        function renderCurrentServingQueue() {
+            const serviceSelect = document.getElementById('serviceId');
+            const serviceId = Number(serviceSelect.value);
+
+            const serviceName =
+                serviceSelect.options[serviceSelect.selectedIndex]?.text || '-';
+
+            document.getElementById('callingServiceName').textContent = serviceName;
+
+            const currentQueues = queueHistory
+                .filter(q =>
+                    Number(q.serviceId) === serviceId &&
+                    q.status === 'serving'
+                )
+                .sort((a, b) => {
+                    const dateA = new Date(a.createdAt || 0).getTime();
+                    const dateB = new Date(b.createdAt || 0).getTime();
+                    return dateB - dateA;
+                });
+
+            const currentQueue = currentQueues[0];
+
+            document.getElementById('servingQueueNumber').textContent =
+                currentQueue?.number || '-';
+
+            document.getElementById('servingPatientName').textContent =
+                currentQueue?.name || 'ยังไม่มีคิวที่กำลังให้บริการ';
+
+            document.getElementById('callingQueueStatus').textContent =
+                currentQueue
+                    ? '🟢 กำลังให้บริการ'
+                    : 'ไม่มีคิวที่กำลังให้บริการในแผนกนี้';
+        }
+
+        // ป้องกันข้อมูลที่แสดงใน HTML
+        function escapeQueueText(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[char]);
+        }
+
+        // ------------------------------
+        // Call next queue
+        // ------------------------------
+
+        async function handleNextQueue() {
+            const serviceSelect = document.getElementById('serviceId');
+            const nextBtn = document.getElementById('nextQueueBtn');
+            const statusEl = document.getElementById('callingQueueStatus');
+
+            const serviceId = Number(serviceSelect.value);
+
+            if (!Number.isInteger(serviceId) || serviceId <= 0) {
+                alert('กรุณาเลือกแผนกก่อนเรียกคิว');
+                return;
+            }
+
+            if (nextBtn.disabled) {
+                return;
+            }
+
+            document.getElementById('callingServiceName').textContent =
+                serviceSelect.options[serviceSelect.selectedIndex]?.text || '-';
+
+            nextBtn.disabled = true;
+            nextBtn.textContent = 'กำลังเรียกคิว...';
+            statusEl.textContent = 'กำลังติดต่อเซิร์ฟเวอร์...';
+
+            try {
+                const response = await authenticatedFetch(
+                    `/queues/next?service_id=${encodeURIComponent(serviceId)}`,
+                    { method: 'POST' }
+                );
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        statusEl.textContent = 'ไม่มีคิวที่รอเรียกในแผนกนี้';
+                        alert('ไม่มีผู้ป่วยที่รอเรียกในแผนกนี้');
+                        await loadQueueHistory();
+                        return;
+                    }
+
+                    throw new Error(
+                        data.detail || `เรียกคิวไม่สำเร็จ (${response.status})`
+                    );
+                }
+
+                const queueNum =
+                    data.number || data.queue_number || `A-${data.id}`;
+
+                const patientName =
+                    data.user?.name || data.patient_name || 'ไม่พบชื่อผู้ป่วย';
+
+                // ปรับสถานะในข้อมูลบนหน้าจอเท่านั้น
+                // ข้อมูลจริงต้องมาจาก Backend response
+                const existingQueue = queueHistory.find(q => q.id === data.id);
+
+                if (existingQueue) {
+                    existingQueue.status = data.status || 'serving';
+                    existingQueue.number = queueNum;
+                    existingQueue.name = patientName;
+                } else {
+                    queueHistory.unshift({
+                        id: data.id,
+                        number: queueNum,
+                        name: patientName,
+                        serviceId: data.service_id ?? serviceId,
+                        serviceName:
+                            data.service?.name ||
+                            serviceSelect.options[serviceSelect.selectedIndex]?.text ||
+                            '-',
+                        status: data.status || 'serving',
+                        createdAt: data.created_at || new Date().toISOString(),
+                        time: data.created_at
+                            ? new Date(data.created_at).toLocaleTimeString('th-TH', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
+                            : new Date().toLocaleTimeString('th-TH', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
+                    });
+                }
+
+                renderQueueHistory();
+                renderCurrentServingQueue();
+
+                // โหลดจาก Backend อีกครั้งเพื่อให้ข้อมูลบนหน้าจอตรงกับฐานข้อมูล
+                await loadQueueHistory();
+
+            } catch (err) {
+                console.error('Next Queue Error:', err);
+                statusEl.textContent = 'เกิดข้อผิดพลาดในการเรียกคิว';
+                alert(err.message || 'ไม่สามารถเรียกคิวได้ กรุณาลองใหม่');
+            } finally {
+                nextBtn.disabled = false;
+                nextBtn.textContent = '📢 เรียกคิวถัดไป (Next Queue)';
+            }
+        }
+
+        // ------------------------------
+        // Create queue
+        // ------------------------------
+
+        async function handleCreateQueue(event) {
+            event.preventDefault();
+
             const nameInput = document.getElementById('patientName');
             const serviceSelect = document.getElementById('serviceId');
             const submitBtn = document.getElementById('submitBtn');
 
             const patientName = nameInput.value.trim();
-            const serviceId = parseInt(serviceSelect.value);
+            const serviceId = Number(serviceSelect.value);
 
-            if (!patientName) return;
-
-            submitBtn.disabled = true;
-            submitBtn.innerText = "กำลังบันทึกข้อมูล...";
-
-            let token = await getToken();
-
-            // รหัสคิวอัตโนมัติ เช่น A001, A002...
-            const generatedQueueNum = `A${String(queueSeq).padStart(3, '0')}`;
-
-            const payload = {
-                number: generatedQueueNum,
-                patient_name: patientName,
-                user_id: 2,
-                service_id: serviceId
-            };
-
-            async function sendQueueRequest(authToken) {
-                return await fetch('/queues/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify(payload)
-                });
+            if (!patientName) {
+                alert('กรุณากรอกชื่อผู้ป่วย');
+                nameInput.focus();
+                return;
             }
 
+            if (!Number.isInteger(serviceId) || serviceId <= 0) {
+                alert('กรุณาเลือกแผนก');
+                return;
+            }
+
+            if (submitBtn.disabled) {
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'กำลังบันทึกข้อมูล...';
+
             try {
-                let response = await sendQueueRequest(token);
+                const response = await authenticatedFetch('/queues/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        patient_name: patientName,
+                        service_id: serviceId
+                    })
+                });
 
-                // ถ้าเจอ 401 (Token หมดอายุ) ให้แอบ Login ใหม่ แล้วลองยิงบันทึกอีกรอบทันที
-                if (response.status === 401) {
-                    token = await silentLogin();
-                    if (token) {
-                        response = await sendQueueRequest(token);
-                    }
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.detail || `ออกคิวไม่สำเร็จ (${response.status})`
+                    );
                 }
 
-                if (response.ok) {
-                    const newQueue = await response.json();
-                    queueSeq++;
+                const selectedServiceName =
+                    serviceSelect.options[serviceSelect.selectedIndex]?.text || '-';
 
-                    const selectedServiceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+                updateNurseScreen(data, patientName, selectedServiceName);
 
-                    // อัปเดตข้อมูลบนหน้าจอพยาบาลทันที
-                    updateNurseScreen(newQueue, patientName, selectedServiceName);
-                    
-                    // สั่งพิมพ์ใบคิว
-                    printSlip(newQueue, patientName, selectedServiceName);
+                printSlip(data, patientName, selectedServiceName);
 
-                    // ล้างช่องกรอกชื่อ และเอาเคอร์เซอร์ไปจ่อไว้ พร้อมพิมพ์ชื่อคนถัดไปทันที!
-                    nameInput.value = '';
-                    nameInput.focus();
-                } else {
-                    const errData = await response.json().catch(() => ({}));
-                    console.error("Queue Error:", errData);
-                    alert("เกิดข้อผิดพลาดในการออกคิว กรุณาลองใหม่อีกครั้ง (" + response.status + ")");
-                }
+                // โหลดประวัติจาก Backend เพื่อให้หน้าจอเป็นข้อมูลล่าสุด
+                await loadQueueHistory();
+
+                nameInput.value = '';
+                nameInput.focus();
+
             } catch (err) {
-                console.error("Network Error:", err);
-                alert("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาเช็กการเชื่อมต่อ");
+                console.error('Create Queue Error:', err);
+                alert(err.message || 'ไม่สามารถออกคิวได้ กรุณาลองใหม่');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerText = "🖨️ บันทึกข้อมูล & พิมพ์สลิปคิว";
+                submitBtn.textContent = '🖨️ บันทึกข้อมูล & พิมพ์สลิปคิว';
             }
         }
 
-        // 4. อัปเดตข้อมูลบนหน้าจอพยาบาล
         function updateNurseScreen(queueData, name, serviceName) {
-            const queueNum = queueData.number || queueData.queue_number || `A-${queueData.id}`;
-            const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            const queueNum =
+                queueData.number || queueData.queue_number || `A-${queueData.id}`;
 
-            // อัปเดตการ์ดคิวล่าสุด
-            document.getElementById('displayQueueNumber').innerText = queueNum;
-            document.getElementById('displayPatientName').innerText = name;
-            document.getElementById('displayTime').innerText = `ออกคิวเมื่อเวลา: ${now} น.`;
+            const now = new Date().toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
 
-            // เพิ่มเข้าประวัติในตารางด้านล่าง
+            document.getElementById('displayQueueNumber').textContent = queueNum;
+            document.getElementById('displayPatientName').textContent = name;
+            document.getElementById('displayTime').textContent =
+                `ออกคิวเมื่อเวลา: ${now} น.`;
+
             queueHistory.unshift({
+                id: queueData.id,
                 number: queueNum,
                 name: name,
+                serviceId: queueData.service_id ??
+                    queueData.service?.id ??
+                    Number(document.getElementById('serviceId').value),
+                serviceName: queueData.service?.name || serviceName,
                 status: queueData.status || 'waiting',
+                createdAt: queueData.created_at || new Date().toISOString(),
                 time: now
             });
 
-            const tableBody = document.getElementById('queueHistoryTable');
-            tableBody.innerHTML = queueHistory.map(q => `
-                <tr class="border-b hover:bg-slate-50">
-                    <td class="px-4 py-2 font-bold text-teal-700">${q.number}</td>
-                    <td class="px-4 py-2">${q.name}</td>
-                    <td class="px-4 py-2"><span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">รอเรียก</span></td>
-                    <td class="px-4 py-2 text-xs text-slate-400">${q.time}</td>
-                </tr>
-            `).join('');
+            renderQueueHistory();
+            renderCurrentServingQueue();
         }
 
-        // 5. เตรียมข้อมูลใส่สลิปแล้วสั่งพิมพ์
-        function printSlip(queueData, name, serviceName) {
-            const queueNum = queueData.number || queueData.queue_number || `A-${queueData.id}`;
-            document.getElementById('slipQueueNumber').innerText = queueNum;
-            document.getElementById('slipPatientName').innerText = name;
-            document.getElementById('slipService').innerText = serviceName;
-            document.getElementById('slipDate').innerText = new Date().toLocaleString('th-TH');
+        // ------------------------------
+        // Print queue slip
+        // ------------------------------
 
-            // 3. จัดการสร้างรูป QR Code 
+        function printSlip(queueData, name, serviceName) {
+            const queueNum =
+                queueData.number || queueData.queue_number || `A-${queueData.id}`;
+
+            document.getElementById('slipQueueNumber').textContent = queueNum;
+            document.getElementById('slipPatientName').textContent = name;
+            document.getElementById('slipService').textContent = serviceName;
+            document.getElementById('slipDate').textContent =
+                new Date().toLocaleString('th-TH');
+
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = ""; // ล้างรูปเก่าออกก่อน
-            
-            // ดึง Token มาต่อเป็นลิงก์ /track/{token}
-            const token = queueData.share_token || queueData.token;
-            if (token) {
-                const trackUrl = `${window.location.origin}/track/${token}`;
-                
+            qrContainer.innerHTML = '';
+
+            const shareToken = queueData.share_token || queueData.token;
+
+            if (shareToken && typeof QRCode !== 'undefined') {
+                const trackUrl =
+                    `${window.location.origin}/track/${encodeURIComponent(shareToken)}`;
+
                 new QRCode(qrContainer, {
                     text: trackUrl,
-                    width: 100,  // ขนาดความกว้าง QR Code
-                    height: 100, // ขนาดความสูง QR Code
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.L
+                    width: 100,
+                    height: 100,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L
                 });
+            } else {
+                qrContainer.textContent = 'ไม่มีข้อมูล QR Code สำหรับคิวนี้';
             }
 
             const slip = document.getElementById('printableSlip');
             slip.classList.remove('hidden');
-            
-            // ใช้ setTimeout หน่วงเวลา 0.1 วินาที ให้บราวเซอร์วาด QR Code เสร็จก่อนเด้งหน้าจอปรินต์
+
             setTimeout(() => {
                 window.print();
                 slip.classList.add('hidden');
-            }, 100);
+            }, 200);
         }
 
-        // เริ่มต้นทำงาน: Auto Login & Load Services ทันทีที่เปิดหน้าเว็บ
-        window.onload = () => {
-            silentLogin();
-            loadServices();
+        // ------------------------------
+        // Initial load
+        // ------------------------------
+
+        window.onload = async () => {
+            await silentLogin();
+            await loadServices();
+            await loadQueueHistory();
+
             document.getElementById('patientName').focus();
         };
     </script>
+
     <script src="/static/i18n.js"></script>
 </body>
 </html>

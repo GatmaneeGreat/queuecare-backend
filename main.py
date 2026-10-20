@@ -330,6 +330,10 @@ app.include_router(hospital_admin.router)
 # FRONTEND PAGES
 # ========================================================
 
+
+from fastapi.responses import RedirectResponse
+
+
 @app.get("/")
 @app.get("/splash")
 def splash_page(request: Request):
@@ -355,11 +359,18 @@ def nurse_page(request: Request):
     )
 
 
-@app.get("/track")
+@app.get("/track", include_in_schema=False)
+def track_without_token():
+    return RedirectResponse(
+        url="/home",
+        status_code=302,
+    )
+
+
 @app.get("/track/{token}")
 def track_page(
     request: Request,
-    token: Optional[str] = "",
+    token: str,
 ):
     return templates.TemplateResponse(
         request=request,

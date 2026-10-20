@@ -24,3 +24,656 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+
+/* QueueCare Patient Home and Splash */
+
+.qc-splash,
+.qc-home {
+  min-height: 100vh;
+  font-family: "Prompt", Arial, sans-serif;
+}
+
+.qc-splash {
+  background-color: #f8fafc;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #f1f5f9 0,
+    #f1f5f9 15px,
+    #f8fafc 15px,
+    #f8fafc 40px
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.qc-splash-top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  animation: qcFadeIn 0.8s ease-out;
+}
+
+.qc-logo-icon {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+  background: #f0fdfa;
+  border: 4px solid #14b8a6;
+  border-radius: 24px;
+  box-shadow: 0 8px 20px #0f766e22;
+  margin-bottom: 16px;
+}
+
+.qc-brand {
+  color: #115e59;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.qc-brand span,
+.qc-header-brand span {
+  color: #0d9488;
+}
+
+.qc-slogan {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.qc-splash-bottom {
+  position: relative;
+  min-height: 42vh;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: white;
+  background: linear-gradient(135deg, #0d9488, #0f766e, #134e4a);
+  border-radius: 40px 40px 0 0;
+  box-shadow: 0 -8px 30px #134e4a20;
+}
+
+.qc-floating-icons {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 12px 24px;
+}
+
+.qc-floating-icons span {
+  padding: 14px;
+  font-size: 30px;
+  background: #ffffff18;
+  border: 1px solid #ffffff33;
+  border-radius: 18px;
+  animation: qcFloat 3s ease-in-out infinite;
+}
+
+.qc-floating-icons span:nth-child(2) {
+  animation-delay: 0.5s;
+  font-size: 36px;
+}
+
+.qc-floating-icons span:nth-child(3) {
+  animation-delay: 1s;
+}
+
+.qc-progress-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #ccfbf1;
+}
+
+.qc-pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #fde047;
+  animation: qcPulse 1s infinite;
+}
+
+.qc-progress-percent {
+  color: #fde047;
+  font-weight: 700;
+}
+
+.qc-progress-track {
+  height: 12px;
+  margin-top: 12px;
+  padding: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #042f2e77;
+  border: 1px solid #ffffff22;
+}
+
+.qc-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fde047, #34d399);
+}
+
+.qc-progress-complete {
+  width: 100%;
+}
+
+.qc-progress-indeterminate {
+  width: 40%;
+  animation: qcIndeterminate 1.2s ease-in-out infinite;
+}
+
+.qc-splash-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: #ccfbf1aa;
+}
+
+.qc-home {
+  padding: 20px;
+  background: #f9f9f6;
+  color: #1b4332;
+}
+
+.qc-header {
+  max-width: 900px;
+  margin: 0 auto 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.qc-header-brand {
+  color: #1b4332;
+  font-weight: 800;
+  font-size: 22px;
+  text-decoration: none;
+}
+
+.qc-language {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #e7e5e4;
+  border-radius: 999px;
+  background: white;
+}
+
+.qc-language button {
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: transparent;
+  color: #57534e;
+  cursor: pointer;
+}
+
+.qc-language button.active {
+  background: #1b4332;
+  color: white;
+}
+
+.qc-home-card {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 28px;
+  background: white;
+  border: 1px solid #e7e5e4;
+  border-radius: 28px;
+  box-shadow: 0 12px 36px #1b43320d;
+}
+
+.qc-home-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  border-radius: 20px;
+  background: #ecfdf5;
+}
+
+.qc-home-card h1 {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.qc-home-subtitle {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 14px;
+  color: #78716c;
+}
+
+.qc-qr-section {
+  margin-top: 28px;
+  padding: 22px;
+  text-align: center;
+  border: 1px solid #d1fae5;
+  border-radius: 20px;
+  background: #f0fdf4;
+}
+
+.qc-qr-icon {
+  font-size: 42px;
+  color: #2d6a4f;
+}
+
+.qc-qr-section h2 {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.qc-qr-section p {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #57534e;
+  line-height: 1.7;
+}
+
+.qc-qr-section .qc-qr-note {
+  font-size: 12px;
+  color: #78716c;
+}
+
+.qc-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: #78716c;
+  font-size: 13px;
+}
+
+.qc-divider::before,
+.qc-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #e7e5e4;
+}
+
+.qc-home-card form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qc-home-card form input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #d6d3d1;
+  border-radius: 12px;
+  outline: none;
+  color: #292524;
+  background: white;
+}
+
+.qc-home-card form input:focus {
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px #2d6a4f18;
+}
+
+.qc-search-button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px;
+  border: 0;
+  border-radius: 12px;
+  background: #2d6a4f;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qc-search-button:hover {
+  background: #1b4332;
+}
+
+.qc-search-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.qc-error {
+  margin-top: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.qc-no-login {
+  margin-top: 18px;
+  text-align: center;
+  color: #78716c;
+  font-size: 12px;
+}
+
+.qc-home-footer {
+  max-width: 900px;
+  margin: 28px auto 0;
+  text-align: center;
+  color: #a8a29e;
+  font-size: 11px;
+}
+
+@keyframes qcFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes qcFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes qcPulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes qcIndeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+@media (max-width: 480px) {
+  .qc-home {
+    padding: 14px;
+  }
+
+  .qc-header {
+    margin-bottom: 20px;
+  }
+
+  .qc-home-card {
+    padding: 22px 18px;
+  }
+
+  .qc-home-card h1 {
+    font-size: 23px;
+  }
+
+  .qc-splash-bottom {
+    padding: 26px 22px;
+  }
+}
+
+
+/* QueueCare Queue Tracking */
+
+.qc-track-page {
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: #f9f9f6;
+  color: #1b4332;
+  font-family: "Prompt", Arial, sans-serif;
+}
+
+.qc-track-container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.qc-track-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.qc-back-button {
+  border: 0;
+  background: transparent;
+  color: #78716c;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qc-back-button:hover {
+  color: #2d6a4f;
+}
+
+.qc-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #1b4332;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.qc-live-badge i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: qcPulse 1.2s infinite;
+}
+
+.qc-track-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+  border-radius: 26px;
+  background: #1b4332;
+  color: white;
+  box-shadow: 0 12px 28px #1b433220;
+}
+
+.qc-patient-row {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #ffffff24;
+}
+
+.qc-track-label {
+  color: #a7f3d0;
+  font-size: 11px;
+}
+
+.qc-patient-row h2 {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.qc-queue-number {
+  padding: 24px 0;
+  text-align: center;
+}
+
+.qc-queue-number p {
+  color: #a7f3d0;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.qc-queue-number strong {
+  display: block;
+  padding: 6px 0;
+  font-size: clamp(44px, 12vw, 64px);
+  line-height: 1.2;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.qc-queue-number span {
+  color: #d1fae5;
+  font-size: 12px;
+}
+
+.qc-status-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #ffffff20;
+  border-radius: 18px;
+  background: #2d6a4f;
+}
+
+.qc-status-panel p {
+  margin-bottom: 5px;
+  color: #d1fae5;
+  font-size: 10px;
+}
+
+.qc-status-panel strong {
+  font-size: 14px;
+}
+
+.qc-ahead {
+  min-width: 76px;
+  text-align: right;
+}
+
+.qc-ahead strong {
+  color: #fcd34d;
+  font-size: 24px;
+}
+
+.qc-ahead span {
+  margin-left: 4px;
+  color: #d1fae5;
+  font-size: 11px;
+}
+
+.qc-serving-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  font-size: 11px;
+  color: #d1fae5;
+}
+
+.qc-serving-row strong {
+  color: white;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.qc-refresh-note {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 11px;
+  color: #a7f3d0;
+}
+
+.qc-track-warning {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #7f1d1d;
+  color: white;
+  font-size: 12px;
+}
+
+.qc-track-notice {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e7e5e4;
+  border-radius: 18px;
+  background: white;
+  text-align: center;
+  box-shadow: 0 4px 14px #00000005;
+}
+
+.qc-track-notice strong {
+  font-size: 12px;
+  color: #44403c;
+}
+
+.qc-track-notice p {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #78716c;
+}
+
+.qc-track-error {
+  margin-top: 60px;
+  text-align: center;
+}
+
+.qc-track-icon {
+  margin-bottom: 12px;
+  font-size: 40px;
+}
+
+.qc-track-error h1 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.qc-track-error p {
+  margin-top: 10px;
+  color: #d1fae5;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.qc-track-button,
+.qc-track-secondary {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qc-track-button {
+  border: 0;
+  background: #fcd34d;
+  color: #292524;
+}
+
+.qc-track-secondary {
+  border: 1px solid #ffffff55;
+  background: transparent;
+  color: white;
+}

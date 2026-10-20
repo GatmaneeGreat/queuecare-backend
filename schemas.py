@@ -144,10 +144,10 @@ class ServiceResponse(BaseModel):
 # =========================================================
 
 class QueueCreate(BaseModel):
-    number: str
-    user_id: int
+    number: Optional[str] = None
+    user_id: Optional[int] = None
     service_id: Optional[int] = None
-    patient_name: Optional[str] = None
+    patient_name: Optional[str] = Field(default=None, min_length=1, max_length=200)
 
 
 class QueueUpdate(BaseModel):
