@@ -1,69 +1,233 @@
-import Image from "next/image";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+export default function HomePage() {
+  const router = useRouter();
+
+  const [showSplash, setShowSplash] = useState(true);
+  const [language, setLanguage] = useState("th");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const text = {
+    th: {
+      slogan: "ระบบบริหารจัดการคิวโรงพยาบาลอัจฉริยะ",
+      title: "ระบบติดตามคิวบริการ",
+      subtitle: "ตรวจสอบสถานะคิวของคุณได้ง่าย ๆ",
+      qrTitle: "สแกน QR Code บนใบคิว",
+      qrText: "ใช้กล้องโทรศัพท์สแกน QR Code บนใบคิว เพื่อดูสถานะคิวของคุณ",
+      searchTitle: "หรือค้นหาด้วยชื่อ-นามสกุล",
+      placeholder: "กรอกชื่อ-นามสกุล",
+      search: "ค้นหาคิว",
+      noLogin: "ไม่ต้องเข้าสู่ระบบ",
+      loading: "กำลังค้นหาคิวของคุณ...",
+      ready: "ระบบพร้อมใช้งานแล้ว!",
+      startup: "กำลังโหลดข้อมูลระบบ...",
+      footer: "QueueCare v1.0 • Ready for Hospital Service",
+      empty: "กรุณากรอกชื่อ-นามสกุล",
+      failed: "ไม่พบคิวที่กำลังรอหรือรับบริการ กรุณาตรวจสอบชื่ออีกครั้ง",
+      network: "ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง",
+    },
+    en: {
+      slogan: "Smart Hospital Queue Management System",
+      title: "Queue Tracking",
+      subtitle: "Check your queue status easily",
+      qrTitle: "Scan the QR Code on your ticket",
+      qrText: "Use your phone camera to scan the QR Code on your ticket.",
+      searchTitle: "Or search by full name",
+      placeholder: "Enter full name",
+      search: "Search Queue",
+      noLogin: "No login required",
+      loading: "Searching for your queue...",
+      ready: "System is ready!",
+      startup: "Loading system...",
+      footer: "QueueCare v1.0 • Ready for Hospital Service",
+      empty: "Please enter your full name.",
+      failed: "No active queue was found. Please check the name.",
+      network: "Unable to connect to the system. Please try again.",
+    },
+  }[language];
+
+  async function handleSearch(event) {
+    event.preventDefault();
+
+    const cleanName = name.trim();
+
+    if (!cleanName) {
+      setError(text.empty);
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/queues/search?name=${encodeURIComponent(cleanName)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || text.failed);
+      }
+
+      if (!data.token) {
+        throw new Error(text.failed);
+      }
+
+      router.push(`/track/${encodeURIComponent(data.token)}`);
+    } catch (err) {
+      setError(
+        err.message === "Failed to fetch"
+          ? text.network
+          : err.message || text.failed
+      );
+      setLoading(false);
+    }
+  }
+
+  if (showSplash || loading) {
+    const isSearching = loading;
+
+    return (
+      <main className="qc-splash">
+        <div className="qc-splash-top">
+          <div className="qc-logo-icon">🏥</div>
+
+          <h1 className="qc-brand">
+            Queue<span>Care</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="qc-slogan">{text.slogan}</p>
+        </div>
+
+        <section className="qc-splash-bottom">
+          <div className="qc-floating-icons">
+            <span>🎫</span>
+            <span>🩺</span>
+            <span>⚡</span>
+          </div>
+
+          <div className="qc-progress-info">
+            <span>
+              <i className="qc-pulse-dot" />
+              {isSearching ? text.loading : text.startup}
+            </span>
+
+            <span className="qc-progress-percent">
+              {isSearching ? "..." : "100%"}
+            </span>
+          </div>
+
+          <div className="qc-progress-track">
+            <div
+              className={
+                isSearching
+                  ? "qc-progress-bar qc-progress-indeterminate"
+                  : "qc-progress-bar qc-progress-complete"
+              }
+            />
+          </div>
+
+          <p className="qc-splash-footer">{text.footer}</p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="qc-home">
+      <header className="qc-header">
+        <a href="/" className="qc-header-brand">
+          🏥 Queue<span>Care</span>
+        </a>
+
+        <div className="qc-language">
+          <button
+            type="button"
+            className={language === "th" ? "active" : ""}
+            onClick={() => setLanguage("th")}
+          >
+            ไทย
+          </button>
+
+          <button
+            type="button"
+            className={language === "en" ? "active" : ""}
+            onClick={() => setLanguage("en")}
+          >
+            EN
+          </button>
+        </div>
+      </header>
+
+      <section className="qc-home-card">
+        <div className="qc-home-icon">🎫</div>
+
+        <h1>{text.title}</h1>
+        <p className="qc-home-subtitle">{text.subtitle}</p>
+
+        <div className="qc-qr-section">
+          <div className="qc-qr-icon">▦</div>
+          <h2>{text.qrTitle}</h2>
+          <p>{text.qrText}</p>
+          <p className="qc-qr-note">
+            {language === "th"
+              ? "หากไม่มี QR Code สามารถค้นหาด้วยชื่อด้านล่าง"
+              : "If you do not have a QR Code, search by name below."}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="qc-divider">
+          <span>{text.searchTitle}</span>
         </div>
-      </main>
-    </div>
+
+        <form onSubmit={handleSearch}>
+          <label htmlFor="patientName">{text.searchTitle}</label>
+
+          <input
+            id="patientName"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={text.placeholder}
+            autoComplete="name"
+            disabled={loading}
+          />
+
+          {error && <p className="qc-error">{error}</p>}
+
+          <button
+            className="qc-search-button"
+            type="submit"
+            disabled={loading}
+          >
+            {text.search}
+          </button>
+        </form>
+
+        <p className="qc-no-login">🔓 {text.noLogin}</p>
+      </section>
+
+      <footer className="qc-home-footer">
+        © QueueCare — Smart Hospital Queue Management
+      </footer>
+    </main>
   );
 }
