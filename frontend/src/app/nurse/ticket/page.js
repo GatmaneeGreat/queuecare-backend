@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function PatientTicketPage() {
+function PatientTicketContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -159,5 +159,19 @@ export default function PatientTicketPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function PatientTicketPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#f0f7f5]">
+          Loading patient ticket...
+        </main>
+      }
+    >
+      <PatientTicketContent />
+    </Suspense>
   );
 }
