@@ -22,8 +22,8 @@ const packages = [
   },
   {
     name: "Pro",
-    price: 799,
-    priceLabel: "฿799",
+    price: 676767,
+    priceLabel: "฿676,767",
     period: "per month",
     description: "Advanced package for hospitals.",
     features: [
@@ -278,7 +278,7 @@ export default function HospitalAdminPackagesPage() {
         </section>
 
         <p className="mt-6 text-center text-sm leading-6 text-slate-500">
-          Pro costs ฿799 per month. Your Pro subscription will become
+          Pro costs ฿676,767 per month. Your Pro subscription will become
           active after payment verification and approval.
         </p>
 

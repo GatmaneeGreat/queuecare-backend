@@ -191,6 +191,7 @@ class PublicQueueResponse(BaseModel):
     status: str
     service_id: Optional[int] = None
     created_at: datetime
+    patient_name: Optional[str] = None
 
     user: Optional[PublicUserResponse] = None
     service: Optional[ServiceResponse] = None

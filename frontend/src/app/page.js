@@ -389,7 +389,7 @@ useEffect(() => {
 
         <p className="qc-no-login">🔓 {text.noLogin}</p>
       </section>
-
+        
       <footer className="qc-home-footer">
         © QueueCare — Smart Hospital Queue Management
       </footer>

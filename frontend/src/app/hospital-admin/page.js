@@ -185,11 +185,15 @@ export default function HospitalAdminDashboard() {
             </button>
 
             <button
-              onClick={() => router.push("/")}
+              onClick={() => {
+                localStorage.removeItem("queuecare_token");
+                router.replace("/login");
+              }}
               className="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
             >
-              Home
+              Logout
             </button>
+
           </div>
         </header>
 
