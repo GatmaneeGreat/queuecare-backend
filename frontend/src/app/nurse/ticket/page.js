@@ -88,7 +88,7 @@ function PatientTicketContent() {
 
   const trackingUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/nurse/ticket?token=${encodeURIComponent(token)}`
+      ? `${window.location.origin}/track/${encodeURIComponent(token)}`
       : "";
 
   return (
