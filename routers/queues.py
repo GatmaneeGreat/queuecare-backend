@@ -1,3 +1,4 @@
+import queue
 import re
 import uuid
 
@@ -48,6 +49,7 @@ def ensure_service_access(service, current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You cannot access another hospital's service.",
+            
         )
 
     if (
@@ -579,13 +581,13 @@ def get_public_queue(
         )
         .first()
     )
-
     return {
         "id": queue.id,
         "number": queue.number,
         "status": queue.status,
         "service_id": queue.service_id,
         "created_at": queue.created_at,
+        "patient_name": queue.user.name if queue.user else None,
         # Never expose the patient's email or password-related fields
         # through this public endpoint.
         "user": None,

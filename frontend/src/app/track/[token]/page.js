@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 const API_URL =
@@ -14,7 +14,7 @@ const STATUS = {
   cancelled: "ยกเลิกคิว",
 };
 
-export default function QueueTrackingPage() {
+function QueueTrackingContent() {
   const params = useParams();
   const router = useRouter();
   const token = params.token;
@@ -154,9 +154,11 @@ export default function QueueTrackingPage() {
                 ผู้ป่วยรับบริการ / Patient
               </p>
               <h2>
-                {queue?.user?.name
-                  ? `คุณ ${queue.user.name}`
-                  : "ไม่พบข้อมูลผู้ป่วย"}
+                {queue?.patient_name
+                  ? `คุณ ${queue.patient_name}`
+                  : queue?.user?.name
+                    ? `คุณ ${queue.user.name}`
+                    : "ไม่พบข้อมูลผู้ป่วย"}
               </h2>
             </div>
           </div>
@@ -214,3 +216,26 @@ export default function QueueTrackingPage() {
     </main>
   );
 }
+
+export default function QueueTrackingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="qc-splash">
+          <div className="qc-splash-top">
+            <div className="qc-logo-icon">🏥</div>
+            <h1 className="qc-brand">
+              Queue<span>Care</span>
+            </h1>
+            <p className="qc-slogan">
+              กำลังโหลดสถานะคิวของคุณ...
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <QueueTrackingContent />
+    </Suspense>
+  );
+}
+

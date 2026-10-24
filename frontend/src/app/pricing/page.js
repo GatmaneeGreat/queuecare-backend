@@ -25,7 +25,7 @@ const PACKAGES = [
   {
     id: "pro",
     name: "Pro",
-    price: "฿799",
+    price: "฿676,767",
     billing: "per month (planned)",
     description:
       "A Pro package for hospitals that want to explore additional features.",
